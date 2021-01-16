@@ -62,15 +62,19 @@ type
     property AsDouble: double read FDouble;
   end;
 
-  { TJClassClassConstant }
+  { TJClassNamedConstant }
 
-  TJClassClassConstant = class(TJClassConstant)
+  TJClassNamedConstant = class(TJClassConstant)
   private
     FNameIndex: UInt16;
   public
     procedure LoadFromStream(AStream: TStream); override;
     property NameIndex: UInt16 read FNameIndex;
   end;
+
+  TJClassClassConstant = class(TJClassNamedConstant);
+  TJClassModuleConstant = class(TJClassNamedConstant);
+  TJClassPackageConstant = class(TJClassNamedConstant);
 
   { TJClassStringConstant }
 
@@ -131,9 +135,9 @@ type
     property DescriptorIndex: UInt16 read FDescriptorIndex;
   end;
 
-  { TJClassInvokeDynamicConstant }
+  { TJClassDynamicGeneralConstant }
 
-  TJClassInvokeDynamicConstant = class(TJClassConstant)
+  TJClassDynamicGeneralConstant = class(TJClassConstant)
   private
     FBootstrapMethodAttrIndex: UInt16;
     FNameAndTypeIndex: UInt16;
@@ -143,8 +147,11 @@ type
     property NameAndTypeIndex: UInt16 read FNameAndTypeIndex;
   end;
 
+  TJClassDynamicConstant = class(TJClassDynamicGeneralConstant);
+  TJClassInvokeDynamicConstant = class(TJClassDynamicGeneralConstant);
+
 const
-  JConstantTypeNames: array[1..18] of string = (
+  JConstantTypeNames: array[1..20] of string = (
     'Utf8',
     'ERROR',
     'Integer',
@@ -161,11 +168,13 @@ const
     'ERROR',
     'MethodHandle',
     'MethodType',
-    'ERROR',
-    'InvokeDynamic'
+    'Dynamic',
+    'InvokeDynamic',
+    'Module',
+    'Package'
     );
 
-  JConstantTypes: array[1..18] of TJClassConstantClass = (
+  JConstantTypes: array[1..20] of TJClassConstantClass = (
     TJClassUtf8Constant,
     nil,
     TJClassIntegerConstant,
@@ -182,8 +191,10 @@ const
     nil,
     TJClassMethodHandleConstant,
     TJClassMethodTypeConstant,
-    nil,
-    TJClassInvokeDynamicConstant
+    TJClassDynamicConstant,
+    TJClassInvokeDynamicConstant,
+    TJClassModuleConstant,
+    TJClassPackageConstant
     );
 
 implementation
@@ -199,9 +210,9 @@ begin
   ReadElement(AStream, @FDescriptorIndex, etWord);
 end;
 
-{ TJClassInvokeDynamicConstant }
+{ TJClassDynamicGeneralConstant }
 
-procedure TJClassInvokeDynamicConstant.LoadFromStream(AStream: TStream);
+procedure TJClassDynamicGeneralConstant.LoadFromStream(AStream: TStream);
 begin
   ReadElement(AStream, @FBootstrapMethodAttrIndex, etWord);
   ReadElement(AStream, @FNameAndTypeIndex, etWord);
@@ -237,9 +248,9 @@ begin
   ReadElement(AStream, @FStringIndex, etWord);
 end;
 
-{ TJClassClassConstant }
+{ TJClassNamedConstant }
 
-procedure TJClassClassConstant.LoadFromStream(AStream: TStream);
+procedure TJClassNamedConstant.LoadFromStream(AStream: TStream);
 begin
   ReadElement(AStream, @FNameIndex, etWord);
 end;

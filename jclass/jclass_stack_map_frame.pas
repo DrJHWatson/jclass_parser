@@ -52,20 +52,20 @@ var
   buf: UInt16;
 begin
   ReadElement(AStream, @FFrameType, etByte);
-  case FFrameType of
-    64..127: LoadVerificetionTypeInfoArray(AStream, FStack, 1);
-    247:
+  case TJStackFrameType(FFrameType) of
+    sftLocals1First..sftLocals1Last: LoadVerificetionTypeInfoArray(AStream, FStack, 1);
+    sftLocals1Ext:
     begin
       ReadElement(AStream, @FOffsetDelta, etWord);
       LoadVerificetionTypeInfoArray(AStream, FStack, 1);
     end;
-    248..250, 251: ReadElement(AStream, @FOffsetDelta, etWord);
-    252..254:
+    sftChopFirst..sftChopLast, sftFrameExt: ReadElement(AStream, @FOffsetDelta, etWord);
+    sftAppendFirst..sftAppendLast:
     begin
       ReadElement(AStream, @FOffsetDelta, etWord);
       LoadVerificetionTypeInfoArray(AStream, FLocals, 1);
     end;
-    255:
+    sftFull:
     begin
       ReadElement(AStream, @FOffsetDelta, etWord);
       ReadElement(AStream, @buf, etWord);

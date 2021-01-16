@@ -185,7 +185,7 @@ begin
     ReadElement(AStream, @FLocalVariableTable[i].StartPC, etWord);
     ReadElement(AStream, @FLocalVariableTable[i].Length, etWord);
     ReadElement(AStream, @FLocalVariableTable[i].NameIndex, etWord);
-    ReadElement(AStream, @FLocalVariableTable[i].DescriptorIndex, etWord);
+    ReadElement(AStream, @FLocalVariableTable[i].TargetIndex, etWord);
     ReadElement(AStream, @FLocalVariableTable[i].Index, etWord);
   end;
 end;

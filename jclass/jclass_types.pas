@@ -14,7 +14,7 @@ type
     StartPC: UInt16;
     Length: UInt16;
     NameIndex: UInt16;
-    DescriptorIndex: UInt16;
+    TargetIndex: UInt16;
     Index: UInt16;
   end;
 
@@ -88,6 +88,29 @@ type
       False: (
         Offset: UInt16;
       );
+  end;
+
+  TJClassModuleRequirement = record
+    RequirementIndex: UInt16;
+    RequirementFlags: UInt16;
+    RequirementVersionIndex: UInt16;
+  end;
+
+  TJClassModuleExports = record
+    ExportsIndex: UInt16;
+    ExportsFlags: UInt16;
+    ExportsToIndices: array of UInt16;
+  end;
+
+  TJClassModuleOpens = record
+    OpensIndex: UInt16;
+    OpensFlags: UInt16;
+    OpensToIndices: array of UInt16;
+  end;
+
+  TJClassModuleProvides = record
+    ProvidesIndex: UInt16;
+    ProvidesWithIndices: array of UInt16;
   end;
 
   TVerificationTypeInfoArray = array of TVerificationTypeInfo;

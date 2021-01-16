@@ -94,7 +94,7 @@ end;
 
 function TJClassFile.GetAccessFlags: string;
 begin
-  Result := AccessFlagsToString(FAccessFlags);
+  Result := ClassAccessFlagsToString(FAccessFlags);
 end;
 
 function TJClassFile.GetClassConstant(AIndex: integer): TJClassConstant;

@@ -97,6 +97,12 @@ initialization
   classList.Add(TJClassBootstrapMethodsAttribute);
   classList.Add(TJClassLineNumberTableAttribute);
   classList.Add(TJClassStackMapTableAttribute);
+  classList.Add(TJClassMethodParametersAttribute);
+  classList.Add(TJClassModuleAttribute);
+  classList.Add(TJClassModulePackagesAttribute);
+  classList.Add(TJClassModuleMainClassAttribute);
+  classList.Add(TJClassNestHostAttribute);
+  classList.Add(TJClassNestMembersAttribute);
 
 finalization
   classList.Free;

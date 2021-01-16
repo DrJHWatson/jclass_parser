@@ -244,10 +244,212 @@ type
     procedure LoadFromStream(AStream: TStream); override;
   end;
 
+  { TJClassModuleAttribute }
+
+  TJClassModuleAttribute = class(TJClassAttribute)
+  private
+    FModuleNameIndex: UInt16;
+    FModuleFlags: UInt16;
+    FModuleVersionIndex: UInt16;
+    FRequires: array of TJClassModuleRequirement;
+    FExports: array of TJClassModuleExports;
+    FOpens: array of TJClassModuleOpens;
+    FUsesIndices: array of UInt16;
+    FProvides: array of TJClassModuleProvides;
+  public
+    class function GetName: string; override;
+    class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
+    procedure LoadFromStream(AStream: TStream); override;
+  end;
+
+  { TJClassModulePackagesAttribute }
+
+  TJClassModulePackagesAttribute = class(TJClassAttribute)
+  private
+    FPackageIndices: array of UInt16;
+  public
+    class function GetName: string; override;
+    class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
+    procedure LoadFromStream(AStream: TStream); override;
+  end;
+
+  { TJClassModuleMainClassAttribute }
+
+  TJClassModuleMainClassAttribute = class(TJClassIndexAttribute)
+  public
+    class function GetName: string; override;
+    class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
+  end;
+
+  { TJClassNestHostAttribute }
+
+  TJClassNestHostAttribute = class(TJClassIndexAttribute)
+  public
+    class function GetName: string; override;
+    class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
+  end;
+
+  { TJClassNestMembersAttribute }
+
+  TJClassNestMembersAttribute = class(TJClassAttribute)
+  private
+    FClasses: array of UInt16;
+  public
+    class function GetName: string; override;
+    class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
+    procedure LoadFromStream(AStream: TStream); override;
+  end;
+
 implementation
 
 uses
   jclass_constants;
+
+{ TJClassModuleAttribute }
+
+class function TJClassModuleAttribute.GetName: string;
+begin
+  Result := 'Module';
+end;
+
+class function TJClassModuleAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
+begin
+  Result := ALocation = alClassFile;
+end;
+
+procedure TJClassModuleAttribute.LoadFromStream(AStream: TStream);
+var
+  buf, bufL2: UInt16;
+  i, j: Integer;
+begin
+  inherited LoadFromStream(AStream);
+  ReadElement(AStream, @FModuleNameIndex, etWord);
+  ReadElement(AStream, @FModuleFlags, etWord);
+  ReadElement(AStream, @FModuleVersionIndex, etWord);
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FRequires, buf);
+  for i:=0 to buf-1 do
+  begin
+    ReadElement(AStream, @FRequires[i].RequirementIndex, etWord);
+    ReadElement(AStream, @FRequires[i].RequirementFlags, etWord);
+    ReadElement(AStream, @FRequires[i].RequirementVersionIndex, etWord);
+  end;
+
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FExports, buf);
+  for i:=0 to buf-1 do
+  begin
+    ReadElement(AStream, @FExports[i].ExportsIndex, etWord);
+    ReadElement(AStream, @FExports[i].ExportsFlags, etWord);
+    ReadElement(AStream, @bufL2, etWord);
+    SetLength(FExports[i].ExportsToIndices, bufL2);
+    for j:=0 to bufL2-1 do
+      ReadElement(AStream, @FExports[i].ExportsToIndices[j], etWord);
+  end;
+
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FOpens, buf);
+  for i:=0 to buf-1 do
+  begin
+    ReadElement(AStream, @FOpens[i].OpensIndex, etWord);
+    ReadElement(AStream, @FOpens[i].OpensFlags, etWord);
+    ReadElement(AStream, @bufL2, etWord);
+    SetLength(FOpens[i].OpensToIndices, bufL2);
+    for j:=0 to bufL2-1 do
+      ReadElement(AStream, @FOpens[i].OpensToIndices[j], etWord);
+  end;
+
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FUsesIndices, buf);
+  for i:=0 to buf-1 do
+    ReadElement(AStream, @FUsesIndices[i], etWord);
+
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FProvides, buf);
+  for i:=0 to buf-1 do
+  begin
+    ReadElement(AStream, @FProvides[i].ProvidesIndex, etWord);
+    ReadElement(AStream, @bufL2, etWord);
+    SetLength(FProvides[i].ProvidesWithIndices, bufL2);
+    for j:=0 to bufL2-1 do
+      ReadElement(AStream, @FProvides[i].ProvidesWithIndices[j], etWord);
+  end;
+end;
+
+{ TJClassModulePackagesAttribute }
+
+class function TJClassModulePackagesAttribute.GetName: string;
+begin
+  Result := 'ModulePackages';
+end;
+
+class function TJClassModulePackagesAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
+begin
+  Result := ALocation = alClassFile;
+end;
+
+procedure TJClassModulePackagesAttribute.LoadFromStream(AStream: TStream);
+var
+  buf: UInt16;
+  i: Integer;
+begin
+  inherited LoadFromStream(AStream);
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FPackageIndices, buf);
+  if buf > 0 then
+    for i := 0 to buf - 1 do
+      ReadElement(AStream, @FPackageIndices[i], etWord);
+end;
+
+{ TJClassModuleMainClassAttribute }
+
+class function TJClassModuleMainClassAttribute.GetName: string;
+begin
+  Result := 'ModuleMainClass';
+end;
+
+class function TJClassModuleMainClassAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
+begin
+  Result := ALocation = alClassFile;
+end;
+
+{ TJClassNestHostAttribute }
+
+class function TJClassNestHostAttribute.GetName: string;
+begin
+  Result := 'NestHost';
+end;
+
+class function TJClassNestHostAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
+begin
+  Result := ALocation = alClassFile;
+end;
+
+{ TJClassNestMembersAttribute }
+
+class function TJClassNestMembersAttribute.GetName: string;
+begin
+  Result := 'NestMembers';
+end;
+
+class function TJClassNestMembersAttribute.SupportsLocation(ALocation:
+  TJAttributeLocation): boolean;
+begin
+  Result := ALocation = alClassFile;
+end;
+
+procedure TJClassNestMembersAttribute.LoadFromStream(AStream: TStream);
+var
+  buf: UInt16;
+  i: Integer;
+begin
+  inherited LoadFromStream(AStream);
+  ReadElement(AStream, @buf, etWord);
+  SetLength(FClasses, buf);
+  if buf > 0 then
+    for i := 0 to buf - 1 do
+      ReadElement(AStream, @FClasses[i], etWord);
+end;
 
 { TJClassSignatureAttribute }
 
@@ -453,13 +655,19 @@ end;
 function TJClassInnerClassesAttribute.AsString: string;
 var
   i: integer;
+  innerClassName: string;
 begin
   Result := '';
-  for i := 0 to Length(FClasses) -1 do
-    Result := Result + Format(' %s (%s)', [
-      TJClassUtf8Constant(FConstantSearch(FClasses[i].InnerNameIndex, TJClassUtf8Constant)).AsString,
-      AccessFlagsToString(FClasses[i].InnerClassAccessFlags)
-    ]);
+  for i := 0 to Length(FClasses) - 1 do
+  begin
+    if FClasses[i].InnerNameIndex = 0 then
+      innerClassName := 'anonymous'
+    else
+      innerClassName := TJClassUtf8Constant(FConstantSearch(
+        FClasses[i].InnerNameIndex, TJClassUtf8Constant)).AsString;
+    Result := Result + Format(' %s (%s);', [innerClassName,
+      ClassAccessFlagsToString(FClasses[i].InnerClassAccessFlags)]);
+  end;
   Result := Trim(Result);
   if Result = '' then
     Result := 'empty';
@@ -562,7 +770,7 @@ end;
 
 class function TJClassUnknownAttribute.GetName: string;
 begin
-  Result := '';
+  Result := 'UNKNOWN';
 end;
 
 class function TJClassUnknownAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
