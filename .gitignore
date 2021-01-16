@@ -1,0 +1,6 @@
+backup/*
+jclass/backup/*
+lib/*
+*.exe
+*.lpi
+*.lps
