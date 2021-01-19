@@ -115,9 +115,6 @@ type
 
   TVerificationTypeInfoArray = array of TVerificationTypeInfo;
 
-  TJClassConstantSearch = function(AIndex: integer;
-    AConstantClass: TJClassConstantClass): TJClassConstant of object;
-
 implementation
 
 end.

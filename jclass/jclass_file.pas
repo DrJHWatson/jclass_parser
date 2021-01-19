@@ -124,7 +124,7 @@ end;
 
 function TJClassFile.GetInterface(AIndex: integer): TJClassClassConstant;
 begin
-  Result := TJClassClassConstant(GetClassConstant(FInterfaces[AIndex]));
+  Result := TJClassClassConstant(GetClassConstantSafe(FInterfaces[AIndex], TJClassClassConstant));
 end;
 
 function TJClassFile.GetInterfacesCount: integer;
@@ -152,11 +152,13 @@ var
   constant: TJClassConstant;
   tag: UInt8;
   i: integer;
+  doubleSize: boolean;
 begin
-  for i := 0 to ACount - 1 do
+  i := 0;
+  while i < ACount do
   begin
     ReadElement(ASource, @tag, etByte);
-    constant := JConstantTypes[tag].Create;
+    constant := JConstantTypes[tag].Create(@GetClassConstantSafe, doubleSize);
     try
       constant.LoadFromStream(ASource);
       FConstantPool.Add(constant);
@@ -164,6 +166,12 @@ begin
       constant.Free;
       raise;
     end;
+    if doubleSize then
+    begin
+      FConstantPool.Add(TJClassEmptyConstant.Create(@GetClassConstantSafe, doubleSize));
+      Inc(i);
+    end;
+    Inc(i);
   end;
 end;
 

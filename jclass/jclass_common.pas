@@ -10,7 +10,6 @@ uses
   jclass_enum;
 
 type
-
   { TJClassLoadable }
 
   TJClassLoadable = class(TObject)
@@ -20,25 +19,7 @@ type
     procedure LoadFromStream(AStream: TStream); virtual; abstract;
   end;
 
-  { TJClassConstant }
-
-  TJClassConstant = class(TJClassLoadable)
-  protected
-    function GetDescription: string; virtual;
-  public
-    property Description: string read GetDescription;
-  end;
-
-  TJClassConstantClass = class of TJClassConstant;
-
 implementation
-
-{ TJClassConstant }
-
-function TJClassConstant.GetDescription: string;
-begin
-  Result := ClassName;
-end;
 
 { TJClassLoadable }
 

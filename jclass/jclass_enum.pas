@@ -136,6 +136,7 @@ function ClassAccessFlagsToString(AAccessFlags: UInt16): string;
 var
   i: integer;
 begin
+  Result := '';
   for i := 0 to 11 do
     if Ord(TJClassAccessFlagValues[i]) and AAccessFlags > 0 then
       Result := Result + ' ' + TJClassAccessFlagNames[i];

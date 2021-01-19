@@ -10,6 +10,30 @@ uses
   jclass_common;
 
 type
+  TJClassConstant = class;
+  TJClassConstantClass = class of TJClassConstant;
+  TJClassConstantSearch = function(AIndex: integer;
+    AConstantClass: TJClassConstantClass): TJClassConstant of object;
+
+  { TJClassConstant }
+
+  TJClassConstant = class(TJClassLoadable)
+  protected
+    FConstantSearch: TJClassConstantSearch;
+    function StringByIndex(AIndex: integer): string;
+    function GetDescription: string; virtual;
+  public
+    constructor Create(AConstantSearch: TJClassConstantSearch; out ADoubleSize: boolean); virtual;
+    property Description: string read GetDescription;
+  end;
+
+  { TJClassEmptyConstant }
+
+  TJClassEmptyConstant = class(TJClassConstant)
+  protected
+    function GetDescription: string; override;
+  end;
+
   { TJClassUtf8Constant }
 
   TJClassUtf8Constant = class(TJClassConstant)
@@ -27,6 +51,8 @@ type
   TJClassIntegerConstant = class(TJClassConstant)
   private
     FInteger: Int32;
+  protected
+    function GetDescription: string; override;
   public
     procedure LoadFromStream(AStream: TStream); override;
     property AsInteger: Int32 read FInteger;
@@ -37,6 +63,8 @@ type
   TJClassFloatConstant = class(TJClassConstant)
   private
     FFloat: single;
+  protected
+    function GetDescription: string; override;
   public
     procedure LoadFromStream(AStream: TStream); override;
     property AsFloat: single read FFloat;
@@ -47,7 +75,10 @@ type
   TJClassLongConstant = class(TJClassConstant)
   private
     FLong: int64;
+  protected
+    function GetDescription: string; override;
   public
+    constructor Create(AConstantSearch: TJClassConstantSearch; out ADoubleSize: boolean); override;
     procedure LoadFromStream(AStream: TStream); override;
     property AsLong: int64 read FLong;
   end;
@@ -57,7 +88,10 @@ type
   TJClassDoubleConstant = class(TJClassConstant)
   private
     FDouble: double;
+  protected
+    function GetDescription: string; override;
   public
+    constructor Create(AConstantSearch: TJClassConstantSearch; out ADoubleSize: boolean); override;
     procedure LoadFromStream(AStream: TStream); override;
     property AsDouble: double read FDouble;
   end;
@@ -67,14 +101,34 @@ type
   TJClassNamedConstant = class(TJClassConstant)
   private
     FNameIndex: UInt16;
+  protected
+    function GetDescription: string; override;
+    function GetTypeName: string; virtual; abstract;
   public
     procedure LoadFromStream(AStream: TStream); override;
     property NameIndex: UInt16 read FNameIndex;
   end;
 
-  TJClassClassConstant = class(TJClassNamedConstant);
-  TJClassModuleConstant = class(TJClassNamedConstant);
-  TJClassPackageConstant = class(TJClassNamedConstant);
+  { TJClassClassConstant }
+
+  TJClassClassConstant = class(TJClassNamedConstant)
+  protected
+    function GetTypeName: string; override;
+  end;
+
+  { TJClassModuleConstant }
+
+  TJClassModuleConstant = class(TJClassNamedConstant)
+  protected
+    function GetTypeName: string; override;
+  end;
+
+  { TJClassPackageConstant }
+
+  TJClassPackageConstant = class(TJClassNamedConstant)
+  protected
+    function GetTypeName: string; override;
+  end;
 
   { TJClassStringConstant }
 
@@ -92,14 +146,34 @@ type
   private
     FRefIndex: UInt16;
     FNameAndTypeIndex: UInt16;
+  protected
+    function GetDescription: string; override;
+    function GetRefName: string; virtual; abstract;
   public
     procedure LoadFromStream(AStream: TStream); override;
     property RefIndex: UInt16 read FRefIndex;
   end;
 
-  TJClassFieldrefConstant = class(TJClassRefConstant);
-  TJClassMethodrefConstant = class(TJClassRefConstant);
-  TJClassInterfaceMethodrefConstant = class(TJClassRefConstant);
+  { TJClassFieldrefConstant }
+
+  TJClassFieldrefConstant = class(TJClassRefConstant)
+  protected
+    function GetRefName: string; override;
+  end;
+
+  { TJClassMethodrefConstant }
+
+  TJClassMethodrefConstant = class(TJClassRefConstant)
+  protected
+    function GetRefName: string; override;
+  end;
+
+  { TJClassInterfaceMethodrefConstant }
+
+  TJClassInterfaceMethodrefConstant = class(TJClassRefConstant)
+  protected
+    function GetRefName: string; override;
+  end;
 
   { TJClassNameAndTypeConstant }
 
@@ -107,6 +181,8 @@ type
   private
     FNameIndex: UInt16;
     FDescriptorIndex: UInt16;
+  protected
+    function GetDescription: string; override;
   public
     procedure LoadFromStream(AStream: TStream); override;
     property NameIndex: UInt16 read FNameIndex;
@@ -202,7 +278,81 @@ implementation
 uses
   jclass_enum;
 
+{ TJClassInterfaceMethodrefConstant }
+
+function TJClassInterfaceMethodrefConstant.GetRefName: string;
+begin
+  Result := 'InterfaceMethod';
+end;
+
+{ TJClassMethodrefConstant }
+
+function TJClassMethodrefConstant.GetRefName: string;
+begin
+  Result := 'Method';
+end;
+
+{ TJClassFieldrefConstant }
+
+function TJClassFieldrefConstant.GetRefName: string;
+begin
+  Result := 'Field';
+end;
+
+{ TJClassPackageConstant }
+
+function TJClassPackageConstant.GetTypeName: string;
+begin
+  Result := 'Package';
+end;
+
+{ TJClassModuleConstant }
+
+function TJClassModuleConstant.GetTypeName: string;
+begin
+  Result := 'Module';
+end;
+
+{ TJClassClassConstant }
+
+function TJClassClassConstant.GetTypeName: string;
+begin
+  Result := 'Class';
+end;
+
+{ TJClassEmptyConstant }
+
+function TJClassEmptyConstant.GetDescription: string;
+begin
+  Result := 'Empty slot after 8-byte constant';
+end;
+
+{ TJClassConstant }
+
+function TJClassConstant.StringByIndex(AIndex: integer): string;
+begin
+  Result := TJClassUtf8Constant(FConstantSearch(AIndex, TJClassUtf8Constant)).AsString;
+end;
+
+function TJClassConstant.GetDescription: string;
+begin
+  Result := ClassName;
+end;
+
+constructor TJClassConstant.Create(AConstantSearch: TJClassConstantSearch;
+  out ADoubleSize: boolean);
+begin
+  FConstantSearch := AConstantSearch;
+  ADoubleSize := False;
+end;
+
 { TJClassNameAndTypeConstant }
+
+function TJClassNameAndTypeConstant.GetDescription: string;
+begin
+  Result := Format('Name and type: name "%s", type "%s"',
+    [StringByIndex(FNameIndex), StringByIndex(FDescriptorIndex)]);
+end;
 
 procedure TJClassNameAndTypeConstant.LoadFromStream(AStream: TStream);
 begin
@@ -235,6 +385,12 @@ end;
 
 { TJClassRefConstant }
 
+function TJClassRefConstant.GetDescription: string;
+begin
+  Result := Format('%sref: target (%d), name and type (%d)',
+    [GetRefName, FRefIndex, FNameAndTypeIndex]);
+end;
+
 procedure TJClassRefConstant.LoadFromStream(AStream: TStream);
 begin
   ReadElement(AStream, @FRefIndex, etWord);
@@ -250,6 +406,11 @@ end;
 
 { TJClassNamedConstant }
 
+function TJClassNamedConstant.GetDescription: string;
+begin
+  Result := Format('%s: %s', [GetTypeName, StringByIndex(FNameIndex)]);
+end;
+
 procedure TJClassNamedConstant.LoadFromStream(AStream: TStream);
 begin
   ReadElement(AStream, @FNameIndex, etWord);
@@ -257,21 +418,50 @@ end;
 
 { TJClassDoubleConstant }
 
+function TJClassDoubleConstant.GetDescription: string;
+begin
+  Result := Format('Double: %f', [FDouble]);
+end;
+
+constructor TJClassDoubleConstant.Create(AConstantSearch: TJClassConstantSearch;
+  out ADoubleSize: boolean);
+begin
+  inherited Create(AConstantSearch, ADoubleSize);
+  ADoubleSize := True;
+end;
+
 procedure TJClassDoubleConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FDouble, etDWord);
   ReadElement(AStream, PByte(@FDouble) + 4, etDWord);
+  ReadElement(AStream, @FDouble, etDWord);
 end;
 
 { TJClassLongConstant }
 
+function TJClassLongConstant.GetDescription: string;
+begin
+  Result := Format('Long: %d', [FLong]);
+end;
+
+constructor TJClassLongConstant.Create(AConstantSearch: TJClassConstantSearch;
+  out ADoubleSize: boolean);
+begin
+  inherited Create(AConstantSearch, ADoubleSize);
+  ADoubleSize := True;
+end;
+
 procedure TJClassLongConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FLong, etDWord);
   ReadElement(AStream, PByte(@FLong) + 4, etDWord);
+  ReadElement(AStream, @FLong, etDWord);
 end;
 
 { TJClassFloatConstant }
+
+function TJClassFloatConstant.GetDescription: string;
+begin
+  Result := Format('Float: %f', [FFloat]);
+end;
 
 procedure TJClassFloatConstant.LoadFromStream(AStream: TStream);
 begin
@@ -279,6 +469,11 @@ begin
 end;
 
 { TJClassIntegerConstant }
+
+function TJClassIntegerConstant.GetDescription: string;
+begin
+  Result := Format('Int: %d', [FInteger]);
+end;
 
 procedure TJClassIntegerConstant.LoadFromStream(AStream: TStream);
 begin
@@ -289,7 +484,8 @@ end;
 
 function TJClassUtf8Constant.GetDescription: string;
 begin
-  Result:= Format('UTF8: "%s"', [FUtf8String]);
+  Result := Format('UTF8: "%s"', [FUtf8String]);
+
 end;
 
 procedure TJClassUtf8Constant.LoadFromStream(AStream: TStream);

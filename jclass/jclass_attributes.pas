@@ -9,7 +9,8 @@ uses
   SysUtils,
   jclass_types,
   jclass_common,
-  jclass_enum;
+  jclass_enum,
+  jclass_constants;
 
 type
   { TJClassAttribute }

@@ -11,8 +11,10 @@ uses
   jclass_attributes,
   jclass_annotations,
   jclass_types,
+  jclass_common,
   jclass_stack_map_frame,
-  jclass_enum;
+  jclass_enum,
+  jclass_constants;
 
 type
   { TJClassSyntheticAttribute }
@@ -155,6 +157,7 @@ type
     FAttributes: TList;
     procedure LoadCodeAttributes(ASource: TStream; ACount: UInt16);
   public
+    function AsString: string; override;
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
@@ -301,9 +304,6 @@ type
   end;
 
 implementation
-
-uses
-  jclass_constants;
 
 { TJClassModuleAttribute }
 
@@ -869,6 +869,23 @@ begin
       raise;
     end;
   end;
+end;
+
+function TJClassCodeAttribute.AsString: string;
+var
+  i: Integer;
+begin
+  Result:='----------------'+LineEnding;
+  Result:=Result+Format('MaxStack: %d', [FMaxStack])+LineEnding;
+  Result:=Result+Format('MaxLocals: %d', [FMaxLocals])+LineEnding;
+  for i:=0 to Length(FExceptionTable)-1 do
+    Result:=Result+Format('Exception: StartPC %d, EndPC %d, HandlerPC %d, CatchType %d', [
+      FExceptionTable[i].StartPC,
+      FExceptionTable[i].EndPC,
+      FExceptionTable[i].HandlerPC,
+      FExceptionTable[i].CatchType
+    ])+LineEnding;
+  Result:=Result+'----------------';
 end;
 
 class function TJClassCodeAttribute.GetName: string;

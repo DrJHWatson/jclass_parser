@@ -18,6 +18,8 @@ type
   { TJClassItem }
 
   TJClassItem = class(TJClassLoadable)
+  private
+    function GetAttributesCount: integer;
   protected
     FAccessFlags: UInt16;
     FNameIndex: UInt16;
@@ -30,6 +32,7 @@ type
     property AccessFlags: UInt16 read FAccessFlags;
     property NameIndex: UInt16 read FNameIndex;
     property DescriptorIndex: UInt16 read FDescriptorIndex;
+    property AttributesCount: integer read GetAttributesCount;
     property Attributes[AIndex: UInt16]: TJClassAttribute read GetAttributes;
     constructor Create(AConstantSearch: TJClassConstantSearch);
   end;
@@ -60,6 +63,11 @@ begin
       raise;
     end;
   end;
+end;
+
+function TJClassItem.GetAttributesCount: integer;
+begin
+  Result := FAttributes.Count;
 end;
 
 function TJClassItem.GetAttributes(AIndex: UInt16): TJClassAttribute;
