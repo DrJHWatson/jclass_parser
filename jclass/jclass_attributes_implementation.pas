@@ -320,59 +320,59 @@ end;
 procedure TJClassModuleAttribute.LoadFromStream(AStream: TStream);
 var
   buf, bufL2: UInt16;
-  i, j: Integer;
+  i, j: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @FModuleNameIndex, etWord);
-  ReadElement(AStream, @FModuleFlags, etWord);
-  ReadElement(AStream, @FModuleVersionIndex, etWord);
-  ReadElement(AStream, @buf, etWord);
+  FModuleNameIndex := ReadWord(AStream);
+  FModuleFlags := ReadWord(AStream);
+  FModuleVersionIndex := ReadWord(AStream);
+  buf := ReadWord(AStream);
   SetLength(FRequires, buf);
-  for i:=0 to buf-1 do
+  for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FRequires[i].RequirementIndex, etWord);
-    ReadElement(AStream, @FRequires[i].RequirementFlags, etWord);
-    ReadElement(AStream, @FRequires[i].RequirementVersionIndex, etWord);
+    FRequires[i].RequirementIndex := ReadWord(AStream);
+    FRequires[i].RequirementFlags := ReadWord(AStream);
+    FRequires[i].RequirementVersionIndex := ReadWord(AStream);
   end;
 
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FExports, buf);
-  for i:=0 to buf-1 do
+  for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FExports[i].ExportsIndex, etWord);
-    ReadElement(AStream, @FExports[i].ExportsFlags, etWord);
-    ReadElement(AStream, @bufL2, etWord);
+    FExports[i].ExportsIndex := ReadWord(AStream);
+    FExports[i].ExportsFlags := ReadWord(AStream);
+    bufL2 := ReadWord(AStream);
     SetLength(FExports[i].ExportsToIndices, bufL2);
-    for j:=0 to bufL2-1 do
-      ReadElement(AStream, @FExports[i].ExportsToIndices[j], etWord);
+    for j := 0 to bufL2 - 1 do
+      FExports[i].ExportsToIndices[j] := ReadWord(AStream);
   end;
 
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FOpens, buf);
-  for i:=0 to buf-1 do
+  for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FOpens[i].OpensIndex, etWord);
-    ReadElement(AStream, @FOpens[i].OpensFlags, etWord);
-    ReadElement(AStream, @bufL2, etWord);
+    FOpens[i].OpensIndex := ReadWord(AStream);
+    FOpens[i].OpensFlags := ReadWord(AStream);
+    bufL2 := ReadWord(AStream);
     SetLength(FOpens[i].OpensToIndices, bufL2);
-    for j:=0 to bufL2-1 do
-      ReadElement(AStream, @FOpens[i].OpensToIndices[j], etWord);
+    for j := 0 to bufL2 - 1 do
+      FOpens[i].OpensToIndices[j] := ReadWord(AStream);
   end;
 
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FUsesIndices, buf);
-  for i:=0 to buf-1 do
-    ReadElement(AStream, @FUsesIndices[i], etWord);
+  for i := 0 to buf - 1 do
+    FUsesIndices[i] := ReadWord(AStream);
 
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FProvides, buf);
-  for i:=0 to buf-1 do
+  for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FProvides[i].ProvidesIndex, etWord);
-    ReadElement(AStream, @bufL2, etWord);
+    FProvides[i].ProvidesIndex := ReadWord(AStream);
+    bufL2 := ReadWord(AStream);
     SetLength(FProvides[i].ProvidesWithIndices, bufL2);
-    for j:=0 to bufL2-1 do
-      ReadElement(AStream, @FProvides[i].ProvidesWithIndices[j], etWord);
+    for j := 0 to bufL2 - 1 do
+      FProvides[i].ProvidesWithIndices[j] := ReadWord(AStream);
   end;
 end;
 
@@ -383,7 +383,8 @@ begin
   Result := 'ModulePackages';
 end;
 
-class function TJClassModulePackagesAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
+class function TJClassModulePackagesAttribute.SupportsLocation(ALocation:
+  TJAttributeLocation): boolean;
 begin
   Result := ALocation = alClassFile;
 end;
@@ -391,14 +392,14 @@ end;
 procedure TJClassModulePackagesAttribute.LoadFromStream(AStream: TStream);
 var
   buf: UInt16;
-  i: Integer;
+  i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FPackageIndices, buf);
   if buf > 0 then
     for i := 0 to buf - 1 do
-      ReadElement(AStream, @FPackageIndices[i], etWord);
+      FPackageIndices[i] := ReadWord(AStream);
 end;
 
 { TJClassModuleMainClassAttribute }
@@ -408,7 +409,8 @@ begin
   Result := 'ModuleMainClass';
 end;
 
-class function TJClassModuleMainClassAttribute.SupportsLocation(ALocation: TJAttributeLocation): boolean;
+class function TJClassModuleMainClassAttribute.SupportsLocation(ALocation:
+  TJAttributeLocation): boolean;
 begin
   Result := ALocation = alClassFile;
 end;
@@ -441,14 +443,14 @@ end;
 procedure TJClassNestMembersAttribute.LoadFromStream(AStream: TStream);
 var
   buf: UInt16;
-  i: Integer;
+  i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FClasses, buf);
   if buf > 0 then
     for i := 0 to buf - 1 do
-      ReadElement(AStream, @FClasses[i], etWord);
+      FClasses[i] := ReadWord(AStream);
 end;
 
 { TJClassSignatureAttribute }
@@ -491,7 +493,7 @@ var
   i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FEntries, buf);
   for i := 0 to buf - 1 do
   begin
@@ -519,12 +521,12 @@ var
   i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FLineNumberTable, buf);
   for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FLineNumberTable[i].StartPC, etWord);
-    ReadElement(AStream, @FLineNumberTable[i].LineNumber, etWord);
+    FLineNumberTable[i].StartPC := ReadWord(AStream);
+    FLineNumberTable[i].LineNumber := ReadWord(AStream);
   end;
 end;
 
@@ -547,12 +549,12 @@ var
   i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etByte);
+  buf := ReadByte(AStream);
   SetLength(FParameters, buf);
   for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FParameters[i].NameIndex, etWord);
-    ReadElement(AStream, @FParameters[i].AccessFlags, etWord);
+    FParameters[i].NameIndex := ReadWord(AStream);
+    FParameters[i].AccessFlags := ReadWord(AStream);
   end;
 end;
 
@@ -576,15 +578,15 @@ var
   i, j: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @methodsCount, etWord);
+  methodsCount := ReadWord(AStream);
   SetLength(FBootstrapMethods, methodsCount);
   for i := 0 to methodsCount - 1 do
   begin
-    ReadElement(AStream, @FBootstrapMethods[i].BootstrapMethodRef, etWord);
-    ReadElement(AStream, @argumentsCount, etWord);
+    FBootstrapMethods[i].BootstrapMethodRef := ReadWord(AStream);
+    argumentsCount := ReadWord(AStream);
     SetLength(FBootstrapMethods[i].BootstrapArguments, argumentsCount);
     for j := 0 to argumentsCount - 1 do
-      ReadElement(AStream, @FBootstrapMethods[i].BootstrapArguments[j], etWord);
+      FBootstrapMethods[i].BootstrapArguments[j] := ReadWord(AStream);
   end;
 end;
 
@@ -604,8 +606,8 @@ end;
 procedure TJClassEnclosingMethodAttribute.LoadFromStream(AStream: TStream);
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @FClassIndex, etWord);
-  ReadElement(AStream, @FMethodIndex, etWord);
+  FClassIndex := ReadWord(AStream);
+  FMethodIndex := ReadWord(AStream);
 end;
 
 { TJClassRuntimeInvisibleTypeAnnotationsAttribute }
@@ -641,14 +643,14 @@ var
   i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FClasses, buf);
   for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FClasses[i].InnerClassInfoIndex, etWord);
-    ReadElement(AStream, @FClasses[i].OuterClassInfoIndex, etWord);
-    ReadElement(AStream, @FClasses[i].InnerNameIndex, etWord);
-    ReadElement(AStream, @FClasses[i].InnerClassAccessFlags, etWord);
+    FClasses[i].InnerClassInfoIndex := ReadWord(AStream);
+    FClasses[i].OuterClassInfoIndex := ReadWord(AStream);
+    FClasses[i].InnerNameIndex := ReadWord(AStream);
+    FClasses[i].InnerClassAccessFlags := ReadWord(AStream);
   end;
 end;
 
@@ -841,10 +843,10 @@ var
   i: integer;
 begin
   inherited;
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FExceptionIndexTable, buf);
   for i := 0 to buf - 1 do
-    ReadElement(AStream, @FExceptionIndexTable[i], etWord);
+    FExceptionIndexTable[i] := ReadWord(AStream);
 end;
 
 { TJClassCodeAttribute }
@@ -858,7 +860,7 @@ var
 begin
   for i := 0 to ACount - 1 do
   begin
-    ReadElement(ASource, @nameIndex, etWord);
+    nameIndex:=ReadWord(ASource);
     attributeName := TJClassUtf8Constant(FConstantSearch(nameIndex, TJClassUtf8Constant)).AsString;
     attribute := FindAttributeClass(attributeName, alClassFile).Create(FConstantSearch);
     try
@@ -873,19 +875,19 @@ end;
 
 function TJClassCodeAttribute.AsString: string;
 var
-  i: Integer;
+  i: integer;
 begin
-  Result:='----------------'+LineEnding;
-  Result:=Result+Format('MaxStack: %d', [FMaxStack])+LineEnding;
-  Result:=Result+Format('MaxLocals: %d', [FMaxLocals])+LineEnding;
-  for i:=0 to Length(FExceptionTable)-1 do
-    Result:=Result+Format('Exception: StartPC %d, EndPC %d, HandlerPC %d, CatchType %d', [
+  Result := '----------------' + LineEnding;
+  Result := Result + Format('MaxStack: %d', [FMaxStack]) + LineEnding;
+  Result := Result + Format('MaxLocals: %d', [FMaxLocals]) + LineEnding;
+  for i := 0 to Length(FExceptionTable) - 1 do
+    Result := Result + Format('Exception: StartPC %d, EndPC %d, HandlerPC %d, CatchType %d', [
       FExceptionTable[i].StartPC,
       FExceptionTable[i].EndPC,
       FExceptionTable[i].HandlerPC,
       FExceptionTable[i].CatchType
     ])+LineEnding;
-  Result:=Result+'----------------';
+  Result := Result + '----------------';
 end;
 
 class function TJClassCodeAttribute.GetName: string;
@@ -905,22 +907,22 @@ var
   i: integer;
 begin
   inherited;
-  ReadElement(AStream, @FMaxStack, etWord);
-  ReadElement(AStream, @FMaxLocals, etWord);
-  ReadElement(AStream, @codeLength, etDWord);
+  FMaxStack := ReadWord(AStream);
+  FMaxLocals := ReadWord(AStream);
+  codeLength := ReadDWord(AStream);
   SetLength(FCode, codeLength);
   if codeLength > 0 then
     AStream.Read(FCode[0], codeLength);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   SetLength(FExceptionTable, buf);
   for i := 0 to buf - 1 do
   begin
-    ReadElement(AStream, @FExceptionTable[i].StartPC, etWord);
-    ReadElement(AStream, @FExceptionTable[i].EndPC, etWord);
-    ReadElement(AStream, @FExceptionTable[i].HandlerPC, etWord);
-    ReadElement(AStream, @FExceptionTable[i].CatchType, etWord);
+    FExceptionTable[i].StartPC := ReadWord(AStream);
+    FExceptionTable[i].EndPC := ReadWord(AStream);
+    FExceptionTable[i].HandlerPC := ReadWord(AStream);
+    FExceptionTable[i].CatchType := ReadWord(AStream);
   end;
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   LoadCodeAttributes(AStream, buf);
 end;
 

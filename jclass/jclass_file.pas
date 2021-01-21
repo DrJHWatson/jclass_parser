@@ -8,6 +8,7 @@ uses
   Classes,
   SysUtils,
   jclass_types,
+  jclass_data_classfile,
   jclass_common,
   jclass_constants,
   jclass_attributes,
@@ -20,17 +21,7 @@ type
 
   TJClassFile = class(TJClassLoadable)
   private
-    FMagic: UInt32;
-    FMinorVersion: UInt16;
-    FMajorVersion: UInt16;
-    FConstantPool: TList;
-    FAccessFlags: UInt16;
-    FThisClass: UInt16;
-    FSuperClass: UInt16;
-    FInterfaces: array of UInt16;
-    FFields: TList;
-    FMethods: TList;
-    FAttributes: TList;
+    FData: TJClassFileData;
     function GetAccessFlags: string;
     function GetAttributesCount: integer;
     function GetClassAttribute(AIndex: integer): TJClassAttribute;
@@ -52,8 +43,8 @@ type
       AConstantClass: TJClassConstantClass): TJClassConstant;
   public
     function GetStringConstant(AIndex: integer): string;
-    property MinorVersion: UInt16 read FMinorVersion;
-    property MajorVersion: UInt16 read FMajorVersion;
+    property MinorVersion: UInt16 read FData.MinorVersion;
+    property MajorVersion: UInt16 read FData.MajorVersion;
     property AccessFlags: string read GetAccessFlags;
     property ThisClass: TJClassClassConstant read GetThisClass;
     property SuperClass: TJClassClassConstant read GetSuperClass;
@@ -84,67 +75,67 @@ const
 
 function TJClassFile.GetClassAttribute(AIndex: integer): TJClassAttribute;
 begin
-  Result := TJClassAttribute(FAttributes[AIndex]);
+  Result := TJClassAttribute(FData.Attributes[AIndex]);
 end;
 
 function TJClassFile.GetAttributesCount: integer;
 begin
-  Result := FAttributes.Count;
+  Result := FData.Attributes.Count;
 end;
 
 function TJClassFile.GetAccessFlags: string;
 begin
-  Result := ClassAccessFlagsToString(FAccessFlags);
+  Result := ClassAccessFlagsToString(FData.AccessFlags);
 end;
 
 function TJClassFile.GetClassConstant(AIndex: integer): TJClassConstant;
 begin
-  Result := TJClassConstant(FConstantPool[AIndex]);
+  Result := TJClassConstant(FData.ConstantPool[AIndex]);
 end;
 
 function TJClassFile.GetClassField(AIndex: integer): TJClassField;
 begin
-  Result := TJClassField(FFields[AIndex]);
+  Result := TJClassField(FData.Fields[AIndex]);
 end;
 
 function TJClassFile.GetClassMethod(AIndex: integer): TJClassMethod;
 begin
-  Result := TJClassMethod(FMethods[AIndex]);
+  Result := TJClassMethod(FData.Methods[AIndex]);
 end;
 
 function TJClassFile.GetConstantCount: integer;
 begin
-  Result := FConstantPool.Count;
+  Result := FData.ConstantPool.Count;
 end;
 
 function TJClassFile.GetFieldsCount: integer;
 begin
-  Result := FFields.Count;
+  Result := FData.Fields.Count;
 end;
 
 function TJClassFile.GetInterface(AIndex: integer): TJClassClassConstant;
 begin
-  Result := TJClassClassConstant(GetClassConstantSafe(FInterfaces[AIndex], TJClassClassConstant));
+  Result := TJClassClassConstant(GetClassConstantSafe(FData.Interfaces[AIndex], TJClassClassConstant));
 end;
 
 function TJClassFile.GetInterfacesCount: integer;
 begin
-  Result := Length(FInterfaces);
+  Result := Length(FData.Interfaces);
 end;
 
 function TJClassFile.GetMethodsCount: integer;
 begin
-  Result := FMethods.Count;
+  Result := FData.Methods.Count;
 end;
 
 function TJClassFile.GetSuperClass: TJClassClassConstant;
 begin
-  Result := TJClassClassConstant(GetClassConstantSafe(FSuperClass, TJClassClassConstant));
+  Result := TJClassClassConstant(GetClassConstantSafe(FData.SuperClass, TJClassClassConstant));
 end;
 
 function TJClassFile.GetThisClass: TJClassClassConstant;
 begin
-  Result := TJClassClassConstant(GetClassConstantSafe(FThisClass, TJClassClassConstant));
+  Result := TJClassClassConstant(GetClassConstantSafe(FData.ThisClass, TJClassClassConstant));
 end;
 
 procedure TJClassFile.LoadClassConstants(ASource: TStream; ACount: UInt16);
@@ -157,18 +148,18 @@ begin
   i := 0;
   while i < ACount do
   begin
-    ReadElement(ASource, @tag, etByte);
+    tag := ReadByte(ASource);
     constant := JConstantTypes[tag].Create(@GetClassConstantSafe, doubleSize);
     try
       constant.LoadFromStream(ASource);
-      FConstantPool.Add(constant);
+      FData.ConstantPool.Add(constant);
     except
       constant.Free;
       raise;
     end;
     if doubleSize then
     begin
-      FConstantPool.Add(TJClassEmptyConstant.Create(@GetClassConstantSafe, doubleSize));
+      FData.ConstantPool.Add(TJClassEmptyConstant.Create(@GetClassConstantSafe, doubleSize));
       Inc(i);
     end;
     Inc(i);
@@ -185,7 +176,7 @@ begin
     field := TJClassField.Create(@GetClassConstantSafe);
     try
       field.LoadFromStream(ASource);
-      FFields.Add(field);
+      FData.Fields.Add(field);
     except
       field.Free;
       raise;
@@ -203,7 +194,7 @@ begin
     method := TJClassMethod.Create(@GetClassConstantSafe);
     try
       method.LoadFromStream(ASource);
-      FMethods.Add(method);
+      FData.Methods.Add(method);
     except
       method.Free;
       raise;
@@ -220,13 +211,13 @@ var
 begin
   for i := 0 to ACount - 1 do
   begin
-    ReadElement(ASource, @nameIndex, etWord);
+    nameIndex := ReadWord(ASource);
     attributeName := TJClassUtf8Constant(GetClassConstantSafe(nameIndex,
       TJClassUtf8Constant)).AsString;
     attribute := FindAttributeClass(attributeName, alClassFile).Create(@GetClassConstantSafe);
     try
       attribute.LoadFromStream(ASource);
-      FAttributes.Add(attribute);
+      FData.Attributes.Add(attribute);
     except
       attribute.Free;
       raise;
@@ -255,50 +246,50 @@ var
 begin
   if not Assigned(AStream) then
     raise Exception.Create('null input stream');
-  ReadElement(AStream, @FMagic, etDWord);
-  ReadElement(AStream, @FMinorVersion, etWord);
-  ReadElement(AStream, @FMajorVersion, etWord);
-  ReadElement(AStream, @buf, etWord);
+  FData.Magic := ReadDWord(AStream);
+  FData.MinorVersion := ReadWord(AStream);
+  FData.MajorVersion := ReadWord(AStream);
+  buf := ReadWord(AStream);
   LoadClassConstants(AStream, buf - 1);
-  ReadElement(AStream, @FAccessFlags, etWord);
-  ReadElement(AStream, @FThisClass, etWord);
-  ReadElement(AStream, @FSuperClass, etWord);
-  ReadElement(AStream, @buf, etWord);
-  SetLength(FInterfaces, buf);
+  FData.AccessFlags := ReadWord(AStream);
+  FData.ThisClass := ReadWord(AStream);
+  FData.SuperClass := ReadWord(AStream);
+  buf := ReadWord(AStream);
+  SetLength(FData.Interfaces, buf);
   for i := 0 to buf - 1 do
-    ReadElement(AStream, @FInterfaces[i], etWord);
-  ReadElement(AStream, @buf, etWord);
+    FData.Interfaces[i] := ReadWord(AStream);
+  buf := ReadWord(AStream);
   LoadClassFields(AStream, buf);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   LoadClassMethods(AStream, buf);
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   LoadClassAttributes(AStream, buf);
 end;
 
 constructor TJClassFile.Create;
 begin
-  FFields := TList.Create;
-  FMethods := TList.Create;
-  FAttributes := TList.Create;
-  FConstantPool := TList.Create;
+  FData.Fields := TList.Create;
+  FData.Methods := TList.Create;
+  FData.Attributes := TList.Create;
+  FData.ConstantPool := TList.Create;
 end;
 
 destructor TJClassFile.Destroy;
 var
   p: Pointer;
 begin
-  for p in FFields do
+  for p in FData.Fields do
     TObject(p).Free;
-  FFields.Free;
-  for p in FMethods do
+  FData.Fields.Free;
+  for p in FData.Methods do
     TObject(p).Free;
-  FMethods.Free;
-  for p in FAttributes do
+  FData.Methods.Free;
+  for p in FData.Attributes do
     TObject(p).Free;
-  FAttributes.Free;
-  for p in FConstantPool do
+  FData.Attributes.Free;
+  for p in FData.ConstantPool do
     TObject(p).Free;
-  FConstantPool.Free;
+  FData.ConstantPool.Free;
   inherited Destroy;
 end;
 

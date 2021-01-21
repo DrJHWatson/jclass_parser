@@ -14,7 +14,9 @@ type
 
   TJClassLoadable = class(TObject)
   protected
-    procedure ReadElement(ASource: TStream; ATarget: Pointer; AType: TJElementType);
+    function ReadByte(ASource: TStream): UInt8;
+    function ReadWord(ASource: TStream): UInt16;
+    function ReadDWord(ASource: TStream): UInt32;
   public
     procedure LoadFromStream(AStream: TStream); virtual; abstract;
   end;
@@ -23,28 +25,33 @@ implementation
 
 { TJClassLoadable }
 
-procedure TJClassLoadable.ReadElement(ASource: TStream; ATarget: Pointer; AType: TJElementType);
-var
-  buffer: array[0..3] of byte;
-  target: PByte;
+function TJClassLoadable.ReadByte(ASource: TStream): UInt8;
 begin
-  target := PByte(ATarget);
-  ASource.Read(buffer[0], Ord(AType));
-  case AType of
-    etByte: target[0] := buffer[0];
-    etWord:
-    begin
-      target[0] := buffer[1];
-      target[1] := buffer[0];
-    end;
-    etDWord:
-    begin
-      target[0] := buffer[3];
-      target[1] := buffer[2];
-      target[2] := buffer[1];
-      target[3] := buffer[0];
-    end;
-  end;
+  Result := ASource.ReadByte;
+end;
+
+function TJClassLoadable.ReadWord(ASource: TStream): UInt16;
+var
+  buf: UInt16;
+  bufArray: array[0..1] of UInt8 absolute buf;
+  resultArray: array[0..1] of UInt8 absolute Result;
+begin
+  buf := ASource.ReadWord;
+  resultArray[0] := bufArray[1];
+  resultArray[1] := bufArray[0];
+end;
+
+function TJClassLoadable.ReadDWord(ASource: TStream): UInt32;
+var
+  buf: UInt32;
+  bufArray: array[0..3] of UInt8 absolute buf;
+  resultArray: array[0..3] of UInt8 absolute Result;
+begin
+  buf := ASource.ReadDWord;
+  resultArray[0] := bufArray[3];
+  resultArray[1] := bufArray[2];
+  resultArray[2] := bufArray[1];
+  resultArray[3] := bufArray[0];
 end;
 
 end.

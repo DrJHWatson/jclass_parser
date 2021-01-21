@@ -85,36 +85,35 @@ end;
 
 procedure TJClassTypeAnnotation.LoadFromStream(AStream: TStream);
 var
-  buf: UInt16;
   i: integer;
 begin
-  ReadElement(AStream, @FTargetType, etByte);
+  FTargetType := ReadByte(AStream);
   case FTargetType of
-    0, 1: ReadElement(AStream, @FTypeParameterTarget, etByte);
-    $10: ReadElement(AStream, @FSupertypeTarget, etWord);
+    0, 1: FTypeParameterTarget := ReadByte(AStream);
+    $10: FSupertypeTarget := ReadWord(AStream);
     $11, $12:
     begin
-      ReadElement(AStream, @FTypeParameterBoundTarget.TypeParameterIndex, etByte);
-      ReadElement(AStream, @FTypeParameterBoundTarget.BoundIndex, etByte);
+      FTypeParameterBoundTarget.TypeParameterIndex := ReadByte(AStream);
+      FTypeParameterBoundTarget.BoundIndex := ReadByte(AStream);
     end;
-    $16: ReadElement(AStream, @FMethodFormalParameterTarget, etByte);
-    $17: ReadElement(AStream, @FThrowsTarget, etWord);
+    $16: FMethodFormalParameterTarget := ReadByte(AStream);
+    $17: FThrowsTarget := ReadWord(AStream);
     $40, $41:
     begin
-      ReadElement(AStream, @buf, etWord);
-      for i := 0 to buf - 1 do
+      SetLength(FLocalvarTarget, ReadWord(AStream));
+      for i := 0 to High(FLocalvarTarget) do
       begin
-        ReadElement(AStream, @FLocalvarTarget[i].StartPC, etWord);
-        ReadElement(AStream, @FLocalvarTarget[i].Length, etWord);
-        ReadElement(AStream, @FLocalvarTarget[i].Index, etWord);
+        FLocalvarTarget[i].StartPC := ReadWord(AStream);
+        FLocalvarTarget[i].Length := ReadWord(AStream);
+        FLocalvarTarget[i].Index := ReadWord(AStream);
       end;
     end;
-    $42: ReadElement(AStream, @FCatchTarget, etWord);
-    $43, $44, $45, $46: ReadElement(AStream, @FOffsetTarget, etWord);
+    $42: FCatchTarget := ReadWord(AStream);
+    $43, $44, $45, $46: FOffsetTarget := ReadWord(AStream);
     $47, $48, $49, $4A, $4B:
     begin
-      ReadElement(AStream, @FTypeArgumentTarget.Offset, etWord);
-      ReadElement(AStream, @FTypeArgumentTarget.TypeArguementIndex, etByte);
+      FTypeArgumentTarget.Offset := ReadWord(AStream);
+      FTypeArgumentTarget.TypeArguementIndex := ReadByte(AStream);
     end;
   end;
 end;
@@ -132,15 +131,13 @@ end;
 
 procedure TJClassAnnotation.LoadFromStream(AStream: TStream);
 var
-  buf: UInt16;
   i: integer;
 begin
-  ReadElement(AStream, @FTypeIndex, etWord);
-  ReadElement(AStream, @buf, etWord);
-  SetLength(FElementValuePairs, buf);
-  for i := 0 to buf - 1 do
+  FTypeIndex := ReadWord(AStream);
+  SetLength(FElementValuePairs, ReadWord(AStream));
+  for i := 0 to High(FElementValuePairs) do
   begin
-    ReadElement(AStream, @FElementValuePairs[i].ElementNameIndex, etWord);
+    FElementValuePairs[i].ElementNameIndex := ReadWord(AStream);
     FElementValuePairs[i].ElementValue := TJClassElementValue.Create;
     FElementValuePairs[i].ElementValue.LoadFromStream(AStream);
   end;
@@ -168,12 +165,12 @@ var
   i: integer;
   elementValue: TJClassElementValue;
 begin
-  ReadElement(AStream, @FTag, etByte);
+  FTag := ReadByte(AStream);
   case char(FTag) of
     'e':
     begin
-      ReadElement(AStream, @FFirstIndex, etWord);
-      ReadElement(AStream, @FSecondIndex, etWord);
+      FFirstIndex := ReadWord(AStream);
+      FSecondIndex := ReadWord(AStream);
     end;
     '@':
     begin
@@ -182,7 +179,7 @@ begin
     end;
     '[':
     begin
-      ReadElement(AStream, @buf, etWord);
+      buf := ReadWord(AStream);
       FArrayValue := TList.Create;
       for i := 0 to buf - 1 do
       begin
@@ -197,7 +194,7 @@ begin
       end;
     end
     else
-      ReadElement(AStream, @FFirstIndex, etWord);
+      FFirstIndex := ReadWord(AStream);
   end;
 end;
 

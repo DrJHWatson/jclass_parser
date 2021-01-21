@@ -60,7 +60,7 @@ end;
 
 procedure TJClassAttribute.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FAttributeLength, etDWord);
+  FAttributeLength := ReadDWord(AStream);
 end;
 
 function TJClassAttribute.AsString: string;

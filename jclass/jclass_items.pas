@@ -51,7 +51,7 @@ var
 begin
   for i := 0 to ACount - 1 do
   begin
-    ReadElement(ASource, @attrNameIndex, etWord);
+    attrNameIndex := ReadWord(ASource);
     attributeName := TJClassUtf8Constant(FConstantSearch(attrNameIndex,
       TJClassUtf8Constant)).AsString;
     attribute := FindAttributeClass(attributeName, ALocation).Create(FConstantSearch);

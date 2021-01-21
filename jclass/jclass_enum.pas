@@ -9,12 +9,6 @@ uses
   SysUtils;
 
 type
-  TJElementType = (
-    etByte = 1,
-    etWord = 2,
-    etDWord = 4
-    );
-
   TJConstantType = (
     ctUtf8 = 1,
     ctInteger = 3,

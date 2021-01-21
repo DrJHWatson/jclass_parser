@@ -107,7 +107,7 @@ var
 begin
   inherited LoadFromStream(AStream);
   FAnnotations := TList.Create;
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   for i := 0 to buf - 1 do
   begin
     annotation := TJClassTypeAnnotation.Create;
@@ -150,7 +150,7 @@ var
 begin
   inherited LoadFromStream(AStream);
   FAnnotations := TList.Create;
-  ReadElement(AStream, @buf, etWord);
+  buf := ReadWord(AStream);
   for i := 0 to buf - 1 do
   begin
     annotation := TJClassAnnotation.Create;
@@ -174,19 +174,17 @@ end;
 
 procedure TJClassLocalVariableAttribute.LoadFromStream(AStream: TStream);
 var
-  buf: UInt16;
   i: integer;
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @buf, etWord);
-  SetLength(FLocalVariableTable, buf);
-  for i := 0 to buf - 1 do
+  SetLength(FLocalVariableTable, ReadWord(AStream));
+  for i := 0 to High(FLocalVariableTable) do
   begin
-    ReadElement(AStream, @FLocalVariableTable[i].StartPC, etWord);
-    ReadElement(AStream, @FLocalVariableTable[i].Length, etWord);
-    ReadElement(AStream, @FLocalVariableTable[i].NameIndex, etWord);
-    ReadElement(AStream, @FLocalVariableTable[i].TargetIndex, etWord);
-    ReadElement(AStream, @FLocalVariableTable[i].Index, etWord);
+    FLocalVariableTable[i].StartPC := ReadWord(AStream);
+    FLocalVariableTable[i].Length := ReadWord(AStream);
+    FLocalVariableTable[i].NameIndex := ReadWord(AStream);
+    FLocalVariableTable[i].TargetIndex := ReadWord(AStream);
+    FLocalVariableTable[i].Index := ReadWord(AStream);
   end;
 end;
 
@@ -222,12 +220,12 @@ var
 begin
   inherited LoadFromStream(AStream);
   FParameters := TList.Create;
-  ReadElement(AStream, @paramCount, etByte);
+  paramCount := ReadByte(AStream);
   for i := 0 to paramCount - 1 do
   begin
     annotations := TList.Create;
     try
-      ReadElement(AStream, @annotationsCount, etWord);
+      annotationsCount := ReadWord(AStream);
       for j := 0 to annotationsCount - 1 do
       begin
         annotation := TJClassAnnotation.Create;
@@ -254,7 +252,7 @@ end;
 procedure TJClassIndexAttribute.LoadFromStream(AStream: TStream);
 begin
   inherited LoadFromStream(AStream);
-  ReadElement(AStream, @FIndex, etWord);
+  FIndex := ReadWord(AStream);
 end;
 
 { TJClassBufferAttribute }

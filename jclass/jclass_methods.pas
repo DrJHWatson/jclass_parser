@@ -26,10 +26,10 @@ procedure TJClassMethod.LoadFromStream(AStream: TStream);
 var
   buf: UInt16;
 begin
-  ReadElement(AStream, @FAccessFlags, etWord);
-  ReadElement(AStream, @FNameIndex, etWord);
-  ReadElement(AStream, @FDescriptorIndex, etWord);
-  ReadElement(AStream, @buf, etWord);
+  FAccessFlags := ReadWord(AStream);
+  FNameIndex := ReadWord(AStream);
+  FDescriptorIndex := ReadWord(AStream);
+  buf := ReadWord(AStream);
   LoadItemAttributes(AStream, buf, alMethodInfo);
 end;
 

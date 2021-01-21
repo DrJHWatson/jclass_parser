@@ -356,31 +356,31 @@ end;
 
 procedure TJClassNameAndTypeConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FNameIndex, etWord);
-  ReadElement(AStream, @FDescriptorIndex, etWord);
+  FNameIndex := ReadWord(AStream);
+  FDescriptorIndex := ReadWord(AStream);
 end;
 
 { TJClassDynamicGeneralConstant }
 
 procedure TJClassDynamicGeneralConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FBootstrapMethodAttrIndex, etWord);
-  ReadElement(AStream, @FNameAndTypeIndex, etWord);
+  FBootstrapMethodAttrIndex := ReadWord(AStream);
+  FNameAndTypeIndex := ReadWord(AStream);
 end;
 
 { TJClassMethodTypeConstant }
 
 procedure TJClassMethodTypeConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FDescriptorIndex, etWord);
+  FDescriptorIndex := ReadWord(AStream);
 end;
 
 { TJClassMethodHandleConstant }
 
 procedure TJClassMethodHandleConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FReferenceKind, etByte);
-  ReadElement(AStream, @FReferenceIndex, etWord);
+  FReferenceKind := ReadByte(AStream);
+  FReferenceIndex := ReadWord(AStream);
 end;
 
 { TJClassRefConstant }
@@ -393,15 +393,15 @@ end;
 
 procedure TJClassRefConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FRefIndex, etWord);
-  ReadElement(AStream, @FNameAndTypeIndex, etWord);
+  FRefIndex := ReadWord(AStream);
+  FNameAndTypeIndex := ReadWord(AStream);
 end;
 
 { TJClassStringConstant }
 
 procedure TJClassStringConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FStringIndex, etWord);
+  FStringIndex := ReadWord(AStream);
 end;
 
 { TJClassNamedConstant }
@@ -413,7 +413,7 @@ end;
 
 procedure TJClassNamedConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FNameIndex, etWord);
+  FNameIndex := ReadWord(AStream);
 end;
 
 { TJClassDoubleConstant }
@@ -431,9 +431,13 @@ begin
 end;
 
 procedure TJClassDoubleConstant.LoadFromStream(AStream: TStream);
+var
+  doubleBuf: double;
+  valueBuf: array[0..1] of UInt32 absolute doubleBuf;
 begin
-  ReadElement(AStream, PByte(@FDouble) + 4, etDWord);
-  ReadElement(AStream, @FDouble, etDWord);
+  valueBuf[1] := ReadDWord(AStream);
+  valueBuf[0] := ReadDWord(AStream);
+  FDouble := doubleBuf;
 end;
 
 { TJClassLongConstant }
@@ -451,9 +455,13 @@ begin
 end;
 
 procedure TJClassLongConstant.LoadFromStream(AStream: TStream);
+var
+  longBuf: UInt64;
+  valueBuf: array[0..1] of UInt32 absolute longBuf;
 begin
-  ReadElement(AStream, PByte(@FLong) + 4, etDWord);
-  ReadElement(AStream, @FLong, etDWord);
+  valueBuf[1] := ReadDWord(AStream);
+  valueBuf[0] := ReadDWord(AStream);
+  FLong := longBuf;
 end;
 
 { TJClassFloatConstant }
@@ -465,7 +473,7 @@ end;
 
 procedure TJClassFloatConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FFloat, etDWord);
+  FFloat := ReadDWord(AStream);
 end;
 
 { TJClassIntegerConstant }
@@ -477,7 +485,7 @@ end;
 
 procedure TJClassIntegerConstant.LoadFromStream(AStream: TStream);
 begin
-  ReadElement(AStream, @FInteger, etDWord);
+  FInteger := ReadDWord(AStream);
 end;
 
 { TJClassUtf8Constant }
@@ -489,13 +497,10 @@ begin
 end;
 
 procedure TJClassUtf8Constant.LoadFromStream(AStream: TStream);
-var
-  buf: UInt16;
 begin
-  ReadElement(AStream, @buf, etWord);
-  SetLength(FUtf8String, buf);
-  if buf > 0 then
-    AStream.Read(FUtf8String[1], buf);
+  SetLength(FUtf8String, ReadWord(AStream));
+  if Length(FUtf8String) > 0 then
+    AStream.Read(FUtf8String[1], Length(FUtf8String));
 end;
 
 function TJClassUtf8Constant.AsString: string;

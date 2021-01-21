@@ -19,7 +19,9 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   jclass_annotations,
   jclass_constants,
   jclass_attributes_implementation,
-  CustApp;
+  CustApp,
+  jclass_data_classfile,
+  jclass_common_types;
 
 type
 

@@ -41,37 +41,33 @@ begin
   SetLength(ATarget, ALength);
   for i := 0 to ALength - 1 do
   begin
-    ReadElement(AStream, @ATarget[i].Tag, etByte);
+    ATarget[i].Tag := ReadByte(AStream);
     if ATarget[i].Tag in [7, 8] then
-      ReadElement(AStream, @ATarget[i].CPoolIndex, etWord);
+      ATarget[i].CPoolIndex := ReadWord(AStream);
   end;
 end;
 
 procedure TJClassStackMapFrame.LoadFromStream(AStream: TStream);
-var
-  buf: UInt16;
 begin
-  ReadElement(AStream, @FFrameType, etByte);
+  FFrameType := ReadByte(AStream);
   case TJStackFrameType(FFrameType) of
     sftLocals1First..sftLocals1Last: LoadVerificetionTypeInfoArray(AStream, FStack, 1);
     sftLocals1Ext:
     begin
-      ReadElement(AStream, @FOffsetDelta, etWord);
+      FOffsetDelta := ReadWord(AStream);
       LoadVerificetionTypeInfoArray(AStream, FStack, 1);
     end;
-    sftChopFirst..sftChopLast, sftFrameExt: ReadElement(AStream, @FOffsetDelta, etWord);
+    sftChopFirst..sftChopLast, sftFrameExt: FOffsetDelta := ReadWord(AStream);
     sftAppendFirst..sftAppendLast:
     begin
-      ReadElement(AStream, @FOffsetDelta, etWord);
+      FOffsetDelta := ReadWord(AStream);
       LoadVerificetionTypeInfoArray(AStream, FLocals, 1);
     end;
     sftFull:
     begin
-      ReadElement(AStream, @FOffsetDelta, etWord);
-      ReadElement(AStream, @buf, etWord);
-      LoadVerificetionTypeInfoArray(AStream, FLocals, buf);
-      ReadElement(AStream, @buf, etWord);
-      LoadVerificetionTypeInfoArray(AStream, FStack, buf);
+      FOffsetDelta := ReadWord(AStream);
+      LoadVerificetionTypeInfoArray(AStream, FLocals, ReadWord(AStream));
+      LoadVerificetionTypeInfoArray(AStream, FStack, ReadWord(AStream));
     end;
   end;
 end;
