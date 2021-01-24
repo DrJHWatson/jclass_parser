@@ -48,6 +48,7 @@ type
   private
     FLocalVariableTable: array of TLocalVariableTableRecord;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
   end;
@@ -165,6 +166,21 @@ begin
 end;
 
 { TJClassLocalVariableAttribute }
+
+procedure TJClassLocalVariableAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+var
+  i: Integer;
+begin
+  AOutput.Add('%sCount: %d', [AIndent, Length(FLocalVariableTable)]);
+  for i := 0 to High(FLocalVariableTable) do
+    with FLocalVariableTable[i] do
+    begin
+      AOutput.Add('%s  Name: %s',[AIndent, FClassFile.FindUtf8Constant(NameIndex)]);
+      AOutput.Add('%s    %.8x (%.8x)',[AIndent, StartPC, Length]);
+      AOutput.Add('%s    Target: %d', [AIndent, TargetIndex]);
+      AOutput.Add('%s    Index: %d', [AIndent, Index]);
+    end;
+end;
 
 class function TJClassLocalVariableAttribute.SupportsLocation(ALocation:
   TJAttributeLocation): boolean;

@@ -7,31 +7,32 @@ interface
 uses
   Classes,
   SysUtils,
-  jclass_common;
+  jclass_common,
+  jclass_enum,
+  jclass_common_types,
+  fgl;
 
 type
   TJClassConstant = class;
+  TJClassConstants = class;
   TJClassConstantClass = class of TJClassConstant;
-  TJClassConstantSearch = function(AIndex: integer;
-    AConstantClass: TJClassConstantClass): TJClassConstant of object;
 
   { TJClassConstant }
 
   TJClassConstant = class(TJClassLoadable)
   protected
-    FConstantSearch: TJClassConstantSearch;
-    function StringByIndex(AIndex: integer): string;
-    function GetDescription: string; virtual;
+    FConstants: TJClassConstants;
   public
-    constructor Create(AConstantSearch: TJClassConstantSearch; out ADoubleSize: boolean); virtual;
-    property Description: string read GetDescription;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
+    constructor Create(AConstants: TJClassConstants; out ADoubleSize: boolean); virtual;
   end;
 
   { TJClassEmptyConstant }
 
   TJClassEmptyConstant = class(TJClassConstant)
-  protected
-    function GetDescription: string; override;
+  public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
+    procedure LoadFromStream(AStream: TStream); override;
   end;
 
   { TJClassUtf8Constant }
@@ -39,9 +40,8 @@ type
   TJClassUtf8Constant = class(TJClassConstant)
   private
     FUtf8String: UTF8String;
-  protected
-    function GetDescription: string; override;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
     function AsString: string;
   end;
@@ -51,9 +51,8 @@ type
   TJClassIntegerConstant = class(TJClassConstant)
   private
     FInteger: Int32;
-  protected
-    function GetDescription: string; override;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
     property AsInteger: Int32 read FInteger;
   end;
@@ -63,9 +62,8 @@ type
   TJClassFloatConstant = class(TJClassConstant)
   private
     FFloat: single;
-  protected
-    function GetDescription: string; override;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
     property AsFloat: single read FFloat;
   end;
@@ -75,10 +73,9 @@ type
   TJClassLongConstant = class(TJClassConstant)
   private
     FLong: int64;
-  protected
-    function GetDescription: string; override;
   public
-    constructor Create(AConstantSearch: TJClassConstantSearch; out ADoubleSize: boolean); override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
+    constructor Create(AConstants: TJClassConstants; out ADoubleSize: boolean); override;
     procedure LoadFromStream(AStream: TStream); override;
     property AsLong: int64 read FLong;
   end;
@@ -88,10 +85,9 @@ type
   TJClassDoubleConstant = class(TJClassConstant)
   private
     FDouble: double;
-  protected
-    function GetDescription: string; override;
   public
-    constructor Create(AConstantSearch: TJClassConstantSearch; out ADoubleSize: boolean); override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
+    constructor Create(AConstants: TJClassConstants; out ADoubleSize: boolean); override;
     procedure LoadFromStream(AStream: TStream); override;
     property AsDouble: double read FDouble;
   end;
@@ -102,9 +98,9 @@ type
   private
     FNameIndex: UInt16;
   protected
-    function GetDescription: string; override;
     function GetTypeName: string; virtual; abstract;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
     property NameIndex: UInt16 read FNameIndex;
   end;
@@ -147,9 +143,9 @@ type
     FRefIndex: UInt16;
     FNameAndTypeIndex: UInt16;
   protected
-    function GetDescription: string; override;
     function GetRefName: string; virtual; abstract;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
     property RefIndex: UInt16 read FRefIndex;
   end;
@@ -181,9 +177,8 @@ type
   private
     FNameIndex: UInt16;
     FDescriptorIndex: UInt16;
-  protected
-    function GetDescription: string; override;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
     property NameIndex: UInt16 read FNameIndex;
     property DescriptorIndex: UInt16 read FDescriptorIndex;
@@ -225,6 +220,18 @@ type
 
   TJClassDynamicConstant = class(TJClassDynamicGeneralConstant);
   TJClassInvokeDynamicConstant = class(TJClassDynamicGeneralConstant);
+
+  { TJClassConstants }
+
+  TJClassConstants = class(specialize TFPGObjectList<TJClassConstant>)
+  public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings);
+    procedure LoadFromStream(AStream: TStream);
+    function CreateNewConst(ATag: TJConstantType; out ADoubleSize: boolean): TJClassConstant;
+    function FindConstant(AIndex: TConstIndex): TJClassConstant;
+    function FindConstantSafe(AIndex: TConstIndex; AClass: TJClassConstantClass): TJClassConstant;
+    function FindUtf8Constant(AIndex: TConstIndex): string;
+  end;
 
 const
   JConstantTypeNames: array[1..20] of string = (
@@ -275,8 +282,87 @@ const
 
 implementation
 
-uses
-  jclass_enum;
+{ TJClassEmptyConstant }
+
+procedure TJClassEmptyConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+begin
+  AOutput.Add(AIndent + 'Empty slot after 8-byte constant');
+end;
+
+procedure TJClassEmptyConstant.LoadFromStream(AStream: TStream);
+begin
+
+end;
+
+{ TJClassConstants }
+
+procedure TJClassConstants.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+var
+  i: integer;
+begin
+  AOutput.Add('%sCount: %d', [AIndent, Count]);
+  for i := 0 to Count - 1 do
+    Items[i].BuildDebugInfo(AIndent + '  ', AOutput);
+end;
+
+procedure TJClassConstants.LoadFromStream(AStream: TStream);
+var
+  constant: TJClassConstant;
+  constantCount: UInt16;
+  tag: UInt8;
+  i: integer;
+  doubleSize: boolean;
+begin
+  constantCount := TJClassConstant.ReadWord(AStream) - 1;
+  i := 0;
+  while i < constantCount do
+  begin
+    tag := TJClassConstant.ReadByte(AStream);
+    constant := JConstantTypes[tag].Create(self, doubleSize);
+    try
+      constant.LoadFromStream(AStream);
+      Add(constant);
+    except
+      constant.Free;
+      raise;
+    end;
+    if doubleSize then
+    begin
+      Add(TJClassEmptyConstant.Create(Self, doubleSize));
+      Inc(i);
+    end;
+    Inc(i);
+  end;
+end;
+
+function TJClassConstants.CreateNewConst(ATag: TJConstantType;
+  out ADoubleSize: boolean): TJClassConstant;
+begin
+  if (Ord(ATag) < 1) or (Ord(ATag) > 20) then
+    raise Exception.Create('Constant type index out of bounds');
+  if not Assigned(JConstantTypes[Ord(ATag)]) then
+    raise Exception.Create('Constant type not found');
+  Result := JConstantTypes[Ord(ATag)].Create(Self, ADoubleSize);
+end;
+
+function TJClassConstants.FindConstant(AIndex: TConstIndex): TJClassConstant;
+begin
+  Result := Items[AIndex - 1];
+end;
+
+function TJClassConstants.FindConstantSafe(AIndex: TConstIndex;
+  AClass: TJClassConstantClass): TJClassConstant;
+begin
+  Result := FindConstant(AIndex);
+  if not (Result is AClass) then
+    raise Exception.CreateFmt('Wrong constant type "%s", expected "%s" at %d',
+      [Result.ClassName, AClass.ClassName, AIndex - 1]);
+end;
+
+function TJClassConstants.FindUtf8Constant(AIndex: TConstIndex): string;
+begin
+  Result := TJClassUtf8Constant(FindConstantSafe(AIndex, TJClassUtf8Constant)).AsString;
+end;
 
 { TJClassInterfaceMethodrefConstant }
 
@@ -320,38 +406,26 @@ begin
   Result := 'Class';
 end;
 
-{ TJClassEmptyConstant }
-
-function TJClassEmptyConstant.GetDescription: string;
-begin
-  Result := 'Empty slot after 8-byte constant';
-end;
-
 { TJClassConstant }
 
-function TJClassConstant.StringByIndex(AIndex: integer): string;
+procedure TJClassConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := TJClassUtf8Constant(FConstantSearch(AIndex, TJClassUtf8Constant)).AsString;
+  AOutput.Add(AIndent + ClassName);
 end;
 
-function TJClassConstant.GetDescription: string;
+constructor TJClassConstant.Create(AConstants: TJClassConstants; out ADoubleSize: boolean);
 begin
-  Result := ClassName;
-end;
-
-constructor TJClassConstant.Create(AConstantSearch: TJClassConstantSearch;
-  out ADoubleSize: boolean);
-begin
-  FConstantSearch := AConstantSearch;
+  FConstants := AConstants;
   ADoubleSize := False;
 end;
 
 { TJClassNameAndTypeConstant }
 
-function TJClassNameAndTypeConstant.GetDescription: string;
+procedure TJClassNameAndTypeConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('Name and type: name "%s", type "%s"',
-    [StringByIndex(FNameIndex), StringByIndex(FDescriptorIndex)]);
+  AOutput.Add('%sName and type: name "%s", type "%s"',
+    [AIndent, FConstants.FindUtf8Constant(FNameIndex),
+    FConstants.FindUtf8Constant(FDescriptorIndex)]);
 end;
 
 procedure TJClassNameAndTypeConstant.LoadFromStream(AStream: TStream);
@@ -385,10 +459,10 @@ end;
 
 { TJClassRefConstant }
 
-function TJClassRefConstant.GetDescription: string;
+procedure TJClassRefConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('%sref: target (%d), name and type (%d)',
-    [GetRefName, FRefIndex, FNameAndTypeIndex]);
+  AOutput.Add('%s%sref: target (%d), name and type (%d)',
+    [AIndent, GetRefName, FRefIndex, FNameAndTypeIndex]);
 end;
 
 procedure TJClassRefConstant.LoadFromStream(AStream: TStream);
@@ -406,9 +480,9 @@ end;
 
 { TJClassNamedConstant }
 
-function TJClassNamedConstant.GetDescription: string;
+procedure TJClassNamedConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('%s: %s', [GetTypeName, StringByIndex(FNameIndex)]);
+  AOutput.Add('%s: %s', [AIndent, GetTypeName, FConstants.FindUtf8Constant(FNameIndex)]);
 end;
 
 procedure TJClassNamedConstant.LoadFromStream(AStream: TStream);
@@ -418,15 +492,14 @@ end;
 
 { TJClassDoubleConstant }
 
-function TJClassDoubleConstant.GetDescription: string;
+procedure TJClassDoubleConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('Double: %f', [FDouble]);
+  AOutput.Add('%sDouble: %f', [AIndent, FDouble]);
 end;
 
-constructor TJClassDoubleConstant.Create(AConstantSearch: TJClassConstantSearch;
-  out ADoubleSize: boolean);
+constructor TJClassDoubleConstant.Create(AConstants: TJClassConstants; out ADoubleSize: boolean);
 begin
-  inherited Create(AConstantSearch, ADoubleSize);
+  inherited Create(AConstants, ADoubleSize);
   ADoubleSize := True;
 end;
 
@@ -442,15 +515,14 @@ end;
 
 { TJClassLongConstant }
 
-function TJClassLongConstant.GetDescription: string;
+procedure TJClassLongConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('Long: %d', [FLong]);
+  AOutput.Add('%sLong: %d', [AIndent, FLong]);
 end;
 
-constructor TJClassLongConstant.Create(AConstantSearch: TJClassConstantSearch;
-  out ADoubleSize: boolean);
+constructor TJClassLongConstant.Create(AConstants: TJClassConstants; out ADoubleSize: boolean);
 begin
-  inherited Create(AConstantSearch, ADoubleSize);
+  inherited Create(AConstants, ADoubleSize);
   ADoubleSize := True;
 end;
 
@@ -466,9 +538,9 @@ end;
 
 { TJClassFloatConstant }
 
-function TJClassFloatConstant.GetDescription: string;
+procedure TJClassFloatConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('Float: %f', [FFloat]);
+  AOutput.Add('%sFloat: %f', [AIndent, FFloat]);
 end;
 
 procedure TJClassFloatConstant.LoadFromStream(AStream: TStream);
@@ -478,9 +550,10 @@ end;
 
 { TJClassIntegerConstant }
 
-function TJClassIntegerConstant.GetDescription: string;
+procedure TJClassIntegerConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+
 begin
-  Result := Format('Int: %d', [FInteger]);
+  AOutput.Add('%sInt: %d', [AIndent, FInteger]);
 end;
 
 procedure TJClassIntegerConstant.LoadFromStream(AStream: TStream);
@@ -490,10 +563,9 @@ end;
 
 { TJClassUtf8Constant }
 
-function TJClassUtf8Constant.GetDescription: string;
+procedure TJClassUtf8Constant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := Format('UTF8: "%s"', [FUtf8String]);
-
+  AOutput.Add('%sUTF8: "%s"', [AIndent, FUtf8String]);
 end;
 
 procedure TJClassUtf8Constant.LoadFromStream(AStream: TStream);

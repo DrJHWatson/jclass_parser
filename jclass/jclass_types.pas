@@ -6,8 +6,7 @@ interface
 
 uses
   Classes,
-  SysUtils,
-  jclass_common;
+  SysUtils;
 
 type
   TLocalVariableTableRecord = record

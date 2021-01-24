@@ -9,6 +9,7 @@ uses
 
 type
   TConstIndex = UInt16;
+  TConstIndexArray = array of TConstIndex;
 
 implementation
 

@@ -20,8 +20,9 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   jclass_constants,
   jclass_attributes_implementation,
   CustApp,
-  jclass_data_classfile,
-  jclass_common_types;
+  jclass_common_types,
+  jclass_common_abstract,
+  jclass_interface_list;
 
 type
 
@@ -32,7 +33,6 @@ type
     procedure DoRun; override;
     procedure ProcessFile(AFile: TFileName);
     procedure PrintJClassInfo(AJClass: TJClassFile);
-    procedure PrintMethod(AJClass: TJClassFile; AMethod: TJClassMethod);
   public
     constructor Create(TheOwner: TComponent); override;
     procedure WriteHelp; virtual;
@@ -96,44 +96,15 @@ type
   procedure TJClassParser.PrintJClassInfo(AJClass: TJClassFile);
   var
     i: integer;
+    sl: TStringList;
   begin
-    with AJClass do
-    begin
-      WriteLn(Format('version: %d,%d', [MajorVersion, MinorVersion]));
-      WriteLn(Format('access flags: %s', [AccessFlags]));
-      WriteLn(Format('this class: %s', [GetStringConstant(ThisClass.NameIndex)]));
-      WriteLn(Format('super class: %s', [GetStringConstant(SuperClass.NameIndex)]));
-      WriteLn(Format('interfaces count: %d', [InterfacesCount]));
-      for i := 0 to InterfacesCount - 1 do
-        WriteLn(Format('  %s', [GetStringConstant(Interfaces[i].NameIndex)]));
-      WriteLn(Format('fields count: %d', [FieldsCount]));
-      for i := 0 to FieldsCount - 1 do
-        WriteLn(Format('  %s', [GetStringConstant(Fields[i].NameIndex)]));
-      WriteLn(Format('methods count: %d', [MethodsCount]));
-      for i := 0 to MethodsCount - 1 do
-        PrintMethod(AJClass, AJClass.Methods[i]);
-
-      WriteLn(Format('attributes count: %d', [AttributesCount]));
-      for i := 0 to AttributesCount - 1 do
-      begin
-        WriteLn(Format('  %s', [Attributes[i].GetName]));
-        WriteLn(Format('    %s', [Attributes[i].AsString]));
-      end;
-      WriteLn(Format('constant slots count: %d', [ConstantsCount]));
-      for i := 0 to ConstantsCount - 1 do
-        WriteLn(Format('  %.4d %s', [i + 1, ConstantPool[i].Description]));
-    end;
-  end;
-
-  procedure TJClassParser.PrintMethod(AJClass: TJClassFile; AMethod: TJClassMethod);
-  var
-    i: integer;
-  begin
-    WriteLn(Format('  %s', [AJClass.GetStringConstant(AMethod.NameIndex)]));
-    for i := 0 to AMethod.AttributesCount - 1 do
-    begin
-      WriteLn(Format('    %s', [AMethod.Attributes[i].GetName]));
-      WriteLn(AMethod.Attributes[i].AsString);
+    sl := TStringList.Create;
+    try
+      AJClass.BuildDebugInfo('', sl);
+      for i := 0 to sl.Count - 1 do
+        WriteLn(sl[i]);
+    finally
+      sl.Free;
     end;
   end;
 

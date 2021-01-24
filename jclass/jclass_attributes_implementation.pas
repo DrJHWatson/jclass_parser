@@ -14,7 +14,8 @@ uses
   jclass_common,
   jclass_stack_map_frame,
   jclass_enum,
-  jclass_constants;
+  jclass_constants,
+  jclass_common_abstract;
 
 type
   { TJClassSyntheticAttribute }
@@ -40,7 +41,7 @@ type
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     property SourceFileIndex: UInt16 read FIndex;
-    function AsString: string; override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
   end;
 
   { TJClassSignatureAttribute }
@@ -154,14 +155,13 @@ type
     FMaxLocals: UInt16;
     FCode: TBytes;
     FExceptionTable: array of TJClassCodeException;
-    FAttributes: TList;
-    procedure LoadCodeAttributes(ASource: TStream; ACount: UInt16);
+    FAttributes: TJClassAttributes;
   public
-    function AsString: string; override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
-    constructor Create(AConstantSearch: TJClassConstantSearch); override;
+    constructor Create(AClassFile: TJClassFileAbstract); override;
   end;
 
   { TJClassInnerClassesAttribute }
@@ -173,7 +173,7 @@ type
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
-    function AsString: string; override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
   end;
 
   { TJClassRuntimeVisibleTypeAnnotationsAttribute }
@@ -230,6 +230,7 @@ type
   private
     FLineNumberTable: array of TJClassLineNumberEntry;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
@@ -504,6 +505,17 @@ end;
 
 { TJClassLineNumberTableAttribute }
 
+procedure TJClassLineNumberTableAttribute.BuildDebugInfo(AIndent: string;
+  AOutput: TStrings);
+var
+  i: Integer;
+begin
+  AOutput.Add('%sCount: %d', [AIndent, Length(FLineNumberTable)]);
+  for i := 0 to Length(FLineNumberTable) - 1 do
+    with FLineNumberTable[i] do
+      AOutput.Add('%s  #%d -- %.8x', [AIndent, LineNumber, StartPC]);
+end;
+
 class function TJClassLineNumberTableAttribute.GetName: string;
 begin
   Result := 'LineNumberTable';
@@ -654,25 +666,22 @@ begin
   end;
 end;
 
-function TJClassInnerClassesAttribute.AsString: string;
+procedure TJClassInnerClassesAttribute.BuildDebugInfo(AIndent: string;
+  AOutput: TStrings);
 var
   i: integer;
   innerClassName: string;
 begin
-  Result := '';
+  AOutput.Add('%sCount: %d', [AIndent, Length(FClasses)]);
   for i := 0 to Length(FClasses) - 1 do
   begin
     if FClasses[i].InnerNameIndex = 0 then
       innerClassName := 'anonymous'
     else
-      innerClassName := TJClassUtf8Constant(FConstantSearch(
-        FClasses[i].InnerNameIndex, TJClassUtf8Constant)).AsString;
-    Result := Result + Format(' %s (%s);', [innerClassName,
-      ClassAccessFlagsToString(FClasses[i].InnerClassAccessFlags)]);
+      innerClassName := FClassFile.FindUtf8Constant(FClasses[i].InnerNameIndex);
+    AOutput.Add('%s  %s (%s);', [AIndent, innerClassName, ClassAccessFlagsToString(
+      FClasses[i].InnerClassAccessFlags)]);
   end;
-  Result := Trim(Result);
-  if Result = '' then
-    Result := 'empty';
 end;
 
 { TJClassAnnotationDefaultAttribute }
@@ -793,9 +802,10 @@ begin
   Result := ALocation = alClassFile;
 end;
 
-function TJClassSourceFileAttribute.AsString: string;
+procedure TJClassSourceFileAttribute.BuildDebugInfo(AIndent: string;
+  AOutput: TStrings);
 begin
-  Result := TJClassUtf8Constant(FConstantSearch(FIndex, TJClassUtf8Constant)).AsString;
+  AOutput.Add(AIndent + FClassFile.FindUtf8Constant(FIndex));
 end;
 
 { TJClassConstantValueAttribute }
@@ -851,43 +861,20 @@ end;
 
 { TJClassCodeAttribute }
 
-procedure TJClassCodeAttribute.LoadCodeAttributes(ASource: TStream; ACount: UInt16);
-var
-  attribute: TJClassAttribute;
-  nameIndex: UInt16;
-  attributeName: string;
-  i: integer;
-begin
-  for i := 0 to ACount - 1 do
-  begin
-    nameIndex:=ReadWord(ASource);
-    attributeName := TJClassUtf8Constant(FConstantSearch(nameIndex, TJClassUtf8Constant)).AsString;
-    attribute := FindAttributeClass(attributeName, alClassFile).Create(FConstantSearch);
-    try
-      attribute.LoadFromStream(ASource);
-      FAttributes.Add(attribute);
-    except
-      attribute.Free;
-      raise;
-    end;
-  end;
-end;
-
-function TJClassCodeAttribute.AsString: string;
+procedure TJClassCodeAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 var
   i: integer;
 begin
-  Result := '----------------' + LineEnding;
-  Result := Result + Format('MaxStack: %d', [FMaxStack]) + LineEnding;
-  Result := Result + Format('MaxLocals: %d', [FMaxLocals]) + LineEnding;
+  AOutput.Add('%s---Code-------------', [AIndent]);
+  AOutput.Add('%sMaxStack: %d', [AIndent, FMaxStack]);
+  AOutput.Add('%sMaxLocals: %d', [AIndent, FMaxLocals]);
   for i := 0 to Length(FExceptionTable) - 1 do
-    Result := Result + Format('Exception: StartPC %d, EndPC %d, HandlerPC %d, CatchType %d', [
-      FExceptionTable[i].StartPC,
-      FExceptionTable[i].EndPC,
-      FExceptionTable[i].HandlerPC,
-      FExceptionTable[i].CatchType
-    ])+LineEnding;
-  Result := Result + '----------------';
+    AOutput.Add('%sException: StartPC %d, EndPC %d, HandlerPC %d, CatchType %d',
+      [AIndent, FExceptionTable[i].StartPC, FExceptionTable[i].EndPC, FExceptionTable[i].HandlerPC,
+      FExceptionTable[i].CatchType]);
+  AOutput.Add('%sAttributes', [AIndent]);
+  FAttributes.BuildDebugInfo(AIndent + '  ', AOutput);
+  AOutput.Add('%s--------------------', [AIndent]);
 end;
 
 class function TJClassCodeAttribute.GetName: string;
@@ -903,7 +890,6 @@ end;
 procedure TJClassCodeAttribute.LoadFromStream(AStream: TStream);
 var
   codeLength: UInt32;
-  buf: UInt16;
   i: integer;
 begin
   inherited;
@@ -913,23 +899,21 @@ begin
   SetLength(FCode, codeLength);
   if codeLength > 0 then
     AStream.Read(FCode[0], codeLength);
-  buf := ReadWord(AStream);
-  SetLength(FExceptionTable, buf);
-  for i := 0 to buf - 1 do
+  SetLength(FExceptionTable, ReadWord(AStream));
+  for i := 0 to High(FExceptionTable) do
   begin
     FExceptionTable[i].StartPC := ReadWord(AStream);
     FExceptionTable[i].EndPC := ReadWord(AStream);
     FExceptionTable[i].HandlerPC := ReadWord(AStream);
     FExceptionTable[i].CatchType := ReadWord(AStream);
   end;
-  buf := ReadWord(AStream);
-  LoadCodeAttributes(AStream, buf);
+  FAttributes.LoadFromStream(AStream, alCode);
 end;
 
-constructor TJClassCodeAttribute.Create(AConstantSearch: TJClassConstantSearch);
+constructor TJClassCodeAttribute.Create(AClassFile: TJClassFileAbstract);
 begin
-  inherited Create(AConstantSearch);
-  FAttributes := TList.Create;
+  inherited Create(AClassFile);
+  FAttributes := TJClassAttributes.Create(AClassFile);
 end;
 
 end.

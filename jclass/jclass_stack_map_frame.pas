@@ -23,6 +23,7 @@ type
     procedure LoadVerificetionTypeInfoArray(AStream: TStream;
       var ATarget: TVerificationTypeInfoArray; ALength: integer);
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     procedure LoadFromStream(AStream: TStream); override;
   end;
 
@@ -45,6 +46,12 @@ begin
     if ATarget[i].Tag in [7, 8] then
       ATarget[i].CPoolIndex := ReadWord(AStream);
   end;
+end;
+
+procedure TJClassStackMapFrame.BuildDebugInfo(AIndent: string; AOutput: TStrings
+  );
+begin
+  AOutput.Add('not supported (TJClassStackMapFrame)');
 end;
 
 procedure TJClassStackMapFrame.LoadFromStream(AStream: TStream);

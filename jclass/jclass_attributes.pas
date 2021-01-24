@@ -7,10 +7,11 @@ interface
 uses
   Classes,
   SysUtils,
-  jclass_types,
   jclass_common,
   jclass_enum,
-  jclass_constants;
+  jclass_constants,
+  jclass_common_abstract,
+  fgl;
 
 type
   { TJClassAttribute }
@@ -18,34 +19,50 @@ type
   TJClassAttribute = class(TJClassLoadable)
   protected
     FAttributeNameIndex: UInt16;
-    FConstantSearch: TJClassConstantSearch;
+    FClassFile: TJClassFileAbstract;
     FAttributeLength: UInt32;
   public
     class function GetName: string; virtual; abstract;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; virtual; abstract;
-    constructor Create(AConstantSearch: TJClassConstantSearch); virtual;
+    constructor Create(AClassFile: TJClassFileAbstract); virtual;
     procedure LoadFromStream(AStream: TStream); override;
-    function AsString: string; virtual;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
+    generic function AsClass<T>: T;
   end;
 
   TJClassAttributeClass = class of TJClassAttribute;
 
-function FindAttributeClass(AName: string; ALocation: TJAttributeLocation): TJClassAttributeClass;
+  { TJClassAttributes }
+
+  TJClassAttributes = class(specialize TFPGObjectList<TJClassAttribute>)
+  private
+    class var
+      FClassList: TList;
+  private
+    FClassFile: TJClassFileAbstract;
+    function FindAttributeClass(AName: string;
+      ALocation: TJAttributeLocation): TJClassAttributeClass;
+  public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings);
+    procedure LoadFromStream(AStream: TStream; ALocation: TJAttributeLocation);
+    function NewAttribute(AName: string; ALocation: TJAttributeLocation): TJClassAttribute;
+    constructor Create(AClassFile: TJClassFileAbstract);
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  end;
 
 implementation
 
 uses
   jclass_attributes_implementation;
 
-var
-  classList: TList = nil;
-
-function FindAttributeClass(AName: string; ALocation: TJAttributeLocation): TJClassAttributeClass;
+function TJClassAttributes.FindAttributeClass(AName: string;
+  ALocation: TJAttributeLocation): TJClassAttributeClass;
 var
   c: Pointer;
 begin
   Result := nil;
-  for c in classList do
+  for c in FClassList do
     with TJClassAttributeClass(c) do
       if SameText(AName, GetName) and SupportsLocation(ALocation) then
       begin
@@ -56,6 +73,85 @@ begin
     Result := TJClassUnknownAttribute;
 end;
 
+procedure TJClassAttributes.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+var
+  i: Integer;
+begin
+  AOutput.Add('%sCount %d', [AIndent, Count]);
+  for i:=0 to Count-1 do
+  begin
+    AOutput.Add('%s  %s', [AIndent, Items[i].GetName]);
+    Items[i].BuildDebugInfo(AIndent + '    ', AOutput);
+  end;
+end;
+
+procedure TJClassAttributes.LoadFromStream(AStream: TStream; ALocation: TJAttributeLocation);
+var
+  attrCount: UInt16;
+  attrNameIndex: UInt16;
+  attributeName: string;
+  i: integer;
+begin
+  attrCount := FClassFile.ReadWord(AStream);
+  for i := 0 to attrCount - 1 do
+  begin
+    attrNameIndex := FClassFile.ReadWord(AStream);
+    attributeName := FClassFile.FindUtf8Constant(attrNameIndex);
+    NewAttribute(attributeName, ALocation).LoadFromStream(AStream);
+  end;
+end;
+
+function TJClassAttributes.NewAttribute(AName: string; ALocation: TJAttributeLocation): TJClassAttribute;
+begin
+  Result := FindAttributeClass(AName, ALocation).Create(FClassFile);
+  Add(Result);
+end;
+
+constructor TJClassAttributes.Create(AClassFile: TJClassFileAbstract);
+begin
+  inherited Create();
+  FClassFile:= AClassFile;
+end;
+
+class constructor TJClassAttributes.ClassCreate;
+begin
+  FClassList := TList.Create;
+
+  FClassList.Add(TJClassSyntheticAttribute);
+  FClassList.Add(TJClassDeprecatedAttribute);
+  FClassList.Add(TJClassSourceFileAttribute);
+  FClassList.Add(TJClassSignatureAttribute);
+  FClassList.Add(TJClassSourceDebugExtensionAttribute);
+  FClassList.Add(TJClassUnknownAttribute);
+  FClassList.Add(TJClassRuntimeVisibleParameterAnnotationsAttribute);
+  FClassList.Add(TJClassRuntimeInvisibleParameterAnnotationsAttribute);
+  FClassList.Add(TJClassLocalVariableTableAttribute);
+  FClassList.Add(TJClassLocalVariableTypeTableAttribute);
+  FClassList.Add(TJClassRuntimeVisibleAnnotationsAttribute);
+  FClassList.Add(TJClassRuntimeInvisibleAnnotationsAttribute);
+  FClassList.Add(TJClassAnnotationDefaultAttribute);
+  FClassList.Add(TJClassExceptionsAttribute);
+  FClassList.Add(TJClassCodeAttribute);
+  FClassList.Add(TJClassInnerClassesAttribute);
+  FClassList.Add(TJClassRuntimeVisibleTypeAnnotationsAttribute);
+  FClassList.Add(TJClassRuntimeInvisibleTypeAnnotationsAttribute);
+  FClassList.Add(TJClassEnclosingMethodAttribute);
+  FClassList.Add(TJClassBootstrapMethodsAttribute);
+  FClassList.Add(TJClassLineNumberTableAttribute);
+  FClassList.Add(TJClassStackMapTableAttribute);
+  FClassList.Add(TJClassMethodParametersAttribute);
+  FClassList.Add(TJClassModuleAttribute);
+  FClassList.Add(TJClassModulePackagesAttribute);
+  FClassList.Add(TJClassModuleMainClassAttribute);
+  FClassList.Add(TJClassNestHostAttribute);
+  FClassList.Add(TJClassNestMembersAttribute);
+end;
+
+class destructor TJClassAttributes.ClassDestroy;
+begin
+  FClassList.Free;
+end;
+
 { TJClassAttribute }
 
 procedure TJClassAttribute.LoadFromStream(AStream: TStream);
@@ -63,49 +159,19 @@ begin
   FAttributeLength := ReadDWord(AStream);
 end;
 
-function TJClassAttribute.AsString: string;
+procedure TJClassAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  Result := 'value is not available';
+  AOutput.Add('not supported (%s)', [ClassName]);
 end;
 
-constructor TJClassAttribute.Create(AConstantSearch: TJClassConstantSearch);
+generic function TJClassAttribute.AsClass<T>: T;
 begin
-  FConstantSearch := AConstantSearch;
+  Result := T(Self);
 end;
 
-initialization
-  classList := TList.Create;
-
-  classList.Add(TJClassSyntheticAttribute);
-  classList.Add(TJClassDeprecatedAttribute);
-  classList.Add(TJClassSourceFileAttribute);
-  classList.Add(TJClassSignatureAttribute);
-  classList.Add(TJClassSourceDebugExtensionAttribute);
-  classList.Add(TJClassUnknownAttribute);
-  classList.Add(TJClassRuntimeVisibleParameterAnnotationsAttribute);
-  classList.Add(TJClassRuntimeInvisibleParameterAnnotationsAttribute);
-  classList.Add(TJClassLocalVariableTableAttribute);
-  classList.Add(TJClassLocalVariableTypeTableAttribute);
-  classList.Add(TJClassRuntimeVisibleAnnotationsAttribute);
-  classList.Add(TJClassRuntimeInvisibleAnnotationsAttribute);
-  classList.Add(TJClassAnnotationDefaultAttribute);
-  classList.Add(TJClassExceptionsAttribute);
-  classList.Add(TJClassCodeAttribute);
-  classList.Add(TJClassInnerClassesAttribute);
-  classList.Add(TJClassRuntimeVisibleTypeAnnotationsAttribute);
-  classList.Add(TJClassRuntimeInvisibleTypeAnnotationsAttribute);
-  classList.Add(TJClassEnclosingMethodAttribute);
-  classList.Add(TJClassBootstrapMethodsAttribute);
-  classList.Add(TJClassLineNumberTableAttribute);
-  classList.Add(TJClassStackMapTableAttribute);
-  classList.Add(TJClassMethodParametersAttribute);
-  classList.Add(TJClassModuleAttribute);
-  classList.Add(TJClassModulePackagesAttribute);
-  classList.Add(TJClassModuleMainClassAttribute);
-  classList.Add(TJClassNestHostAttribute);
-  classList.Add(TJClassNestMembersAttribute);
-
-finalization
-  classList.Free;
+constructor TJClassAttribute.Create(AClassFile: TJClassFileAbstract);
+begin
+  FClassFile := AClassFile;
+end;
 
 end.

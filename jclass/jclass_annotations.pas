@@ -23,6 +23,7 @@ type
     FArrayValue: TList;
     FAnnotation: TJClassAnnotation;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     destructor Destroy; override;
     procedure LoadFromStream(AStream: TStream); override;
   end;
@@ -39,6 +40,7 @@ type
     FTypeIndex: UInt16;
     FElementValuePairs: array of TJClassElementValuePair;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     destructor Destroy; override;
     procedure LoadFromStream(AStream: TStream); override;
   end;
@@ -63,6 +65,7 @@ type
     FTypeIndex: UInt16;
     FElementValuePairs: array of TJClassElementValuePair;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     destructor Destroy; override;
     procedure LoadFromStream(AStream: TStream); override;
   end;
@@ -73,6 +76,12 @@ uses
   jclass_enum;
 
 { TJClassTypeAnnotation }
+
+procedure TJClassTypeAnnotation.BuildDebugInfo(AIndent: string;
+  AOutput: TStrings);
+begin
+  AOutput.Add('not supported (TJClassTypeAnnotation)');
+end;
 
 destructor TJClassTypeAnnotation.Destroy;
 var
@@ -120,6 +129,11 @@ end;
 
 { TJClassAnnotation }
 
+procedure TJClassAnnotation.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+begin
+  AOutput.Add('not supported (TJClassAnnotation)');
+end;
+
 destructor TJClassAnnotation.Destroy;
 var
   i: integer;
@@ -144,6 +158,11 @@ begin
 end;
 
 { TJClassElementValue }
+
+procedure TJClassElementValue.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+begin
+  AOutput.Add('not supported (TJClassElementValue)');
+end;
 
 destructor TJClassElementValue.Destroy;
 var

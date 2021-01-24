@@ -7,6 +7,9 @@ interface
 uses
   Classes, SysUtils;
 
+type
+  TConstIndex = UInt16;
+
 implementation
 
 end.
