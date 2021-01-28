@@ -48,8 +48,8 @@ begin
   end;
 end;
 
-procedure TJClassStackMapFrame.BuildDebugInfo(AIndent: string; AOutput: TStrings
-  );
+procedure TJClassStackMapFrame.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+
 begin
   AOutput.Add('not supported (TJClassStackMapFrame)');
 end;

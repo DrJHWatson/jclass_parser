@@ -1,5 +1,7 @@
 backup/*
 jclass/backup/*
+jclass/code/*
+jclass/common/*
 lib/*
 *.exe
 *.lpi

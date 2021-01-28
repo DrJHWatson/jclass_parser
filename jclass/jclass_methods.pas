@@ -37,7 +37,7 @@ implementation
 
 procedure TJClassMethods.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 var
-  i: Integer;
+  i: integer;
 begin
   AOutput.Add('%sCount: %d', [AIndent, Count]);
   for i := 0 to Count - 1 do

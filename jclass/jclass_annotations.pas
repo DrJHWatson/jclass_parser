@@ -77,8 +77,7 @@ uses
 
 { TJClassTypeAnnotation }
 
-procedure TJClassTypeAnnotation.BuildDebugInfo(AIndent: string;
-  AOutput: TStrings);
+procedure TJClassTypeAnnotation.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
   AOutput.Add('not supported (TJClassTypeAnnotation)');
 end;
@@ -131,7 +130,10 @@ end;
 
 procedure TJClassAnnotation.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  AOutput.Add('not supported (TJClassAnnotation)');
+  AOutput.Add('%sType: %d', [AIndent, FTypeIndex]);
+  AOutput.Add('%sPairs', [AIndent]);
+  AOutput.Add('%s  Count: %d', [AIndent, Length(FElementValuePairs)]);
+  AOutput.Add('not supported (ElementValuePairs)');
 end;
 
 destructor TJClassAnnotation.Destroy;

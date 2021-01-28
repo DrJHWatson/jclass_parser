@@ -133,6 +133,7 @@ type
     FStringIndex: UInt16;
   public
     procedure LoadFromStream(AStream: TStream); override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     property StringIndex: UInt16 read FStringIndex;
   end;
 
@@ -478,11 +479,16 @@ begin
   FStringIndex := ReadWord(AStream);
 end;
 
+procedure TJClassStringConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+begin
+  AOutput.Add('%sString: "%s"', [AIndent, FConstants.FindUtf8Constant(FStringIndex)]);
+end;
+
 { TJClassNamedConstant }
 
 procedure TJClassNamedConstant.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
-  AOutput.Add('%s: %s', [AIndent, GetTypeName, FConstants.FindUtf8Constant(FNameIndex)]);
+  AOutput.Add('%s%s: %s', [AIndent, GetTypeName, FConstants.FindUtf8Constant(FNameIndex)]);
 end;
 
 procedure TJClassNamedConstant.LoadFromStream(AStream: TStream);

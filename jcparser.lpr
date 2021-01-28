@@ -22,7 +22,10 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   CustApp,
   jclass_common_types,
   jclass_common_abstract,
-  jclass_interface_list;
+  jclass_interface_list,
+  jclass_code_enum,
+  jclass_code_instruction,
+  jclass_code_sequence;
 
 type
 

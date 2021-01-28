@@ -59,6 +59,7 @@ type
   private
     FAnnotations: TList;
   public
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     destructor Destroy; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
@@ -124,6 +125,15 @@ end;
 
 { TJClassRuntimeAnnotationsAttribute }
 
+procedure TJClassRuntimeAnnotationsAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+var
+  i: integer;
+begin
+  AOutput.Add('%sCount: %d', [AIndent, FAnnotations.Count]);
+  for i := 0 to FAnnotations.Count - 1 do
+    TJClassAnnotation(FAnnotations[i]).BuildDebugInfo(AIndent + '  ', AOutput);
+end;
+
 destructor TJClassRuntimeAnnotationsAttribute.Destroy;
 var
   i: integer;
@@ -169,14 +179,14 @@ end;
 
 procedure TJClassLocalVariableAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 var
-  i: Integer;
+  i: integer;
 begin
   AOutput.Add('%sCount: %d', [AIndent, Length(FLocalVariableTable)]);
   for i := 0 to High(FLocalVariableTable) do
     with FLocalVariableTable[i] do
     begin
-      AOutput.Add('%s  Name: %s',[AIndent, FClassFile.FindUtf8Constant(NameIndex)]);
-      AOutput.Add('%s    %.8x (%.8x)',[AIndent, StartPC, Length]);
+      AOutput.Add('%s  Name: %s', [AIndent, FClassFile.FindUtf8Constant(NameIndex)]);
+      AOutput.Add('%s    %.8x (%.8x)', [AIndent, StartPC, Length]);
       AOutput.Add('%s    Target: %d', [AIndent, TargetIndex]);
       AOutput.Add('%s    Index: %d', [AIndent, Index]);
     end;

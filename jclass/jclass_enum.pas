@@ -51,7 +51,7 @@ type
     );
 
   TJClassAccessFlag = (
-    cafPublic = $0001, 
+    cafPublic = $0001,
     cafPrivate = $0002,
     cafProtected = $0004,
     cafStatic = $0008,
@@ -97,7 +97,7 @@ function ClassAccessFlagsToString(AAccessFlags: UInt16): string;
 implementation
 
 const
-  TJClassAccessFlagNames: array[0..11] of string = (
+  TJClassAccessFlagNames: array of string = (
     'Public',
     'Private',
     'Protected',
@@ -111,7 +111,7 @@ const
     'Enum',
     'Module'
     );
-  TJClassAccessFlagValues: array[0..11] of TJClassAccessFlag = (
+  TJClassAccessFlagValues: array of TJClassAccessFlag = (
     cafPublic,
     cafPrivate,
     cafProtected,
@@ -131,7 +131,7 @@ var
   i: integer;
 begin
   Result := '';
-  for i := 0 to 11 do
+  for i := 0 to High(TJClassAccessFlagValues) do
     if Ord(TJClassAccessFlagValues[i]) and AAccessFlags > 0 then
       Result := Result + ' ' + TJClassAccessFlagNames[i];
   Result := trim(Result);

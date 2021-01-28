@@ -5,7 +5,8 @@ unit jclass_common_types;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes,
+  SysUtils;
 
 type
   TConstIndex = UInt16;
@@ -14,4 +15,3 @@ type
 implementation
 
 end.
-

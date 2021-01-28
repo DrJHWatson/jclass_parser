@@ -15,7 +15,8 @@ uses
   jclass_stack_map_frame,
   jclass_enum,
   jclass_constants,
-  jclass_common_abstract;
+  jclass_common_abstract,
+  jclass_code_sequence;
 
 type
   { TJClassSyntheticAttribute }
@@ -156,12 +157,15 @@ type
     FCode: TBytes;
     FExceptionTable: array of TJClassCodeException;
     FAttributes: TJClassAttributes;
+    FCodeSequence: TJClassCodeSequence;
+    procedure LoadCodeSequesce;
   public
     procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
     constructor Create(AClassFile: TJClassFileAbstract); override;
+    destructor Destroy; override;
   end;
 
   { TJClassInnerClassesAttribute }
@@ -302,6 +306,7 @@ type
     class function GetName: string; override;
     class function SupportsLocation(ALocation: TJAttributeLocation): boolean; override;
     procedure LoadFromStream(AStream: TStream); override;
+    procedure BuildDebugInfo(AIndent: string; AOutput: TStrings); override;
   end;
 
 implementation
@@ -454,6 +459,19 @@ begin
       FClasses[i] := ReadWord(AStream);
 end;
 
+procedure TJClassNestMembersAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
+var
+  cl: TJClassClassConstant;
+  i: integer;
+begin
+  AOutput.Add('%sCount: %d', [AIndent, Length(FClasses)]);
+  for i := 0 to High(FClasses) do
+  begin
+    cl := FClassFile.FindConstantSafe(FClasses[i], TJClassClassConstant) as TJClassClassConstant;
+    AOutput.Add('%s  %s', [AIndent, FClassFile.FindUtf8Constant(cl.NameIndex)]);
+  end;
+end;
+
 { TJClassSignatureAttribute }
 
 class function TJClassSignatureAttribute.GetName: string;
@@ -505,10 +523,9 @@ end;
 
 { TJClassLineNumberTableAttribute }
 
-procedure TJClassLineNumberTableAttribute.BuildDebugInfo(AIndent: string;
-  AOutput: TStrings);
+procedure TJClassLineNumberTableAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 var
-  i: Integer;
+  i: integer;
 begin
   AOutput.Add('%sCount: %d', [AIndent, Length(FLineNumberTable)]);
   for i := 0 to Length(FLineNumberTable) - 1 do
@@ -666,8 +683,7 @@ begin
   end;
 end;
 
-procedure TJClassInnerClassesAttribute.BuildDebugInfo(AIndent: string;
-  AOutput: TStrings);
+procedure TJClassInnerClassesAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 var
   i: integer;
   innerClassName: string;
@@ -802,8 +818,7 @@ begin
   Result := ALocation = alClassFile;
 end;
 
-procedure TJClassSourceFileAttribute.BuildDebugInfo(AIndent: string;
-  AOutput: TStrings);
+procedure TJClassSourceFileAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 begin
   AOutput.Add(AIndent + FClassFile.FindUtf8Constant(FIndex));
 end;
@@ -861,6 +876,20 @@ end;
 
 { TJClassCodeAttribute }
 
+procedure TJClassCodeAttribute.LoadCodeSequesce;
+var
+  ms: TMemoryStream;
+begin
+  ms := TMemoryStream.Create;
+  try
+    ms.Write(FCode[0], Length(FCode));
+    ms.Position := 0;
+    FCodeSequence.LoadFromStream(ms);
+  finally
+    ms.Free;
+  end;
+end;
+
 procedure TJClassCodeAttribute.BuildDebugInfo(AIndent: string; AOutput: TStrings);
 var
   i: integer;
@@ -868,10 +897,12 @@ begin
   AOutput.Add('%s---Code-------------', [AIndent]);
   AOutput.Add('%sMaxStack: %d', [AIndent, FMaxStack]);
   AOutput.Add('%sMaxLocals: %d', [AIndent, FMaxLocals]);
+  AOutput.Add('%sCode sequence (length: %d)', [AIndent, FCodeSequence.Count]);
+  FCodeSequence.BuildDebugInfo(AIndent + '  ', AOutput);
   for i := 0 to Length(FExceptionTable) - 1 do
     AOutput.Add('%sException: StartPC %d, EndPC %d, HandlerPC %d, CatchType %d',
-      [AIndent, FExceptionTable[i].StartPC, FExceptionTable[i].EndPC, FExceptionTable[i].HandlerPC,
-      FExceptionTable[i].CatchType]);
+      [AIndent, FExceptionTable[i].StartPC, FExceptionTable[i].EndPC,
+      FExceptionTable[i].HandlerPC, FExceptionTable[i].CatchType]);
   AOutput.Add('%sAttributes', [AIndent]);
   FAttributes.BuildDebugInfo(AIndent + '  ', AOutput);
   AOutput.Add('%s--------------------', [AIndent]);
@@ -899,6 +930,7 @@ begin
   SetLength(FCode, codeLength);
   if codeLength > 0 then
     AStream.Read(FCode[0], codeLength);
+  LoadCodeSequesce;
   SetLength(FExceptionTable, ReadWord(AStream));
   for i := 0 to High(FExceptionTable) do
   begin
@@ -914,6 +946,14 @@ constructor TJClassCodeAttribute.Create(AClassFile: TJClassFileAbstract);
 begin
   inherited Create(AClassFile);
   FAttributes := TJClassAttributes.Create(AClassFile);
+  FCodeSequence := TJClassCodeSequence.Create;
+end;
+
+destructor TJClassCodeAttribute.Destroy;
+begin
+  FAttributes.Free;
+  FCodeSequence.Free;
+  inherited Destroy;
 end;
 
 end.
